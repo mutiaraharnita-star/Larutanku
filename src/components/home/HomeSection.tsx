@@ -14,7 +14,7 @@ import {
 import { useProgress } from '../../context/ProgressContext';
 
 export const HomeSection: React.FC = () => {
-  const { setActiveTab } = useProgress();
+  const { setActiveTab, session, openAuthModal } = useProgress();
 
   return (
     <div className="home-container" id="home-section">
@@ -298,6 +298,55 @@ export const HomeSection: React.FC = () => {
               <span>Ikuti Kuis Sekarang</span>
               <ArrowRight size={16} />
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* TEACHER TOOLS PROMO BANNER */}
+      <section className="section-block teacher-banner-section">
+        <div className="teacher-feature-card">
+          <div className="tf-content">
+            <div className="tf-badge">
+              <Zap size={15} />
+              <span>Khusus Pendidik / Guru Kimia</span>
+            </div>
+            <h2 className="tf-title">Kelola Bank Soal Kuis & Rekapitulasi Nilai Siswa</h2>
+            <p className="tf-desc">
+              Akses akun Guru dilindungi PIN keamanan khusus. Pantau ketuntasan KKM siswa kelas XII,
+              ekspor rekapitulasi nilai ke format CSV/Excel, dan kelola butir soal kuis evaluasi
+              secara langsung.
+            </p>
+            <div className="tf-points">
+              <span className="tf-point-item">
+                <CheckCircle2 size={16} /> Bank Soal Dinamis (Tambah, Edit, Hapus)
+              </span>
+              <span className="tf-point-item">
+                <CheckCircle2 size={16} /> Rekap Nilai Siswa Otomatis & Analisis KKM (75)
+              </span>
+              <span className="tf-point-item">
+                <CheckCircle2 size={16} /> Ekspor Data Spreadsheet & Cetak Laporan
+              </span>
+            </div>
+          </div>
+          <div className="tf-actions">
+            <button
+              type="button"
+              className="btn btn-teacher-portal btn-glow"
+              onClick={() => {
+                if (session.role === 'guru') {
+                  setActiveTab('bank-soal');
+                } else {
+                  openAuthModal(
+                    'guru',
+                    'Masukkan PIN Guru (Default: 8888) untuk membuka akses Bank Soal & Rekap Nilai.'
+                  );
+                }
+              }}
+            >
+              <Zap size={18} />
+              <span>{session.role === 'guru' ? 'Buka Panel Guru' : 'Masuk Portal Guru (PIN)'}</span>
+              <ArrowRight size={16} />
+            </button>
           </div>
         </div>
       </section>

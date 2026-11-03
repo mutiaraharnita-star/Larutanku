@@ -93,3 +93,24 @@ export interface UserProgress {
   };
   observations: LabObservationRecord[];
 }
+
+export type UserRole = 'siswa' | 'guru';
+
+export interface UserSession {
+  role: UserRole;
+  name: string;
+  studentClass?: string;
+  isLoggedIn: boolean;
+}
+
+export interface QuizSubmission {
+  id: string;
+  studentName: string;
+  studentClass: string;
+  score: number;
+  totalQuestions: number;
+  percentage: number;
+  submittedAt: string;
+  status: 'Lulus' | 'Remedial';
+}
+

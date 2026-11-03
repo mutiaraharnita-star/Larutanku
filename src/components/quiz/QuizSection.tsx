@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { QUIZ_QUESTIONS } from '../../data/quizQuestions';
 import { QuizReview } from './QuizReview';
 import { useProgress } from '../../context/ProgressContext';
 import {
@@ -9,18 +8,59 @@ import {
   Send,
   CheckCircle2,
   AlertCircle,
+  FileQuestion,
+  User,
 } from 'lucide-react';
 
 export const QuizSection: React.FC = () => {
-  const { saveQuizResult } = useProgress();
+  const {
+    saveQuizResult,
+    quizQuestions,
+    addQuizSubmission,
+    session,
+    setActiveTab,
+  } = useProgress();
 
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, number>>({});
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
 
-  const currentQ = QUIZ_QUESTIONS[currentIndex];
-  const totalQuestions = QUIZ_QUESTIONS.length;
+  const totalQuestions = quizQuestions.length;
+
+  // Handle empty question bank
+  if (totalQuestions === 0) {
+    return (
+      <div className="quiz-container" id="quiz-section">
+        <div className="section-header-compact">
+          <div className="section-pill">
+            <HelpCircle size={14} />
+            <span>Kuis & Evaluasi Kimia XII</span>
+          </div>
+          <h1 className="page-main-title">Uji Pemahaman Larutan Elektrolit</h1>
+        </div>
+        <div className="empty-state-card">
+          <FileQuestion size={48} className="empty-icon" />
+          <h3 className="empty-title">Bank Soal Masih Kosong</h3>
+          <p className="empty-desc">
+            Saat ini belum ada butir soal di Bank Soal. Guru dapat menambahkan soal baru melalui
+            panel Bank Soal.
+          </p>
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={() => setActiveTab('beranda')}
+          >
+            Kembali ke Beranda
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure currentIndex is in range
+  const safeIndex = Math.min(currentIndex, totalQuestions - 1);
+  const currentQ = quizQuestions[safeIndex] || quizQuestions[0];
   const answeredCount = Object.keys(userAnswers).length;
   const unansweredCount = totalQuestions - answeredCount;
 
@@ -34,13 +74,30 @@ export const QuizSection: React.FC = () => {
   const handleSubmitQuiz = () => {
     // Calculate final score
     let score = 0;
-    QUIZ_QUESTIONS.forEach((q) => {
+    quizQuestions.forEach((q) => {
       if (userAnswers[q.id] === q.correctIndex) {
         score++;
       }
     });
 
+    const percentage = Math.round((score / totalQuestions) * 100);
+
+    // Save student local progress
     saveQuizResult(score, totalQuestions);
+
+    // Save into Teacher's centralized Rekap Nilai
+    const studentName = session.isLoggedIn && session.name ? session.name : 'Siswa Kimia XII';
+    const studentClass = session.studentClass || 'XII MIPA 1';
+
+    addQuizSubmission({
+      studentName,
+      studentClass,
+      score,
+      totalQuestions,
+      percentage,
+      status: percentage >= 75 ? 'Lulus' : 'Remedial',
+    });
+
     setIsSubmitted(true);
     setShowConfirmModal(false);
     window.scrollTo({ top: 100, behavior: 'smooth' });
@@ -56,7 +113,7 @@ export const QuizSection: React.FC = () => {
   if (isSubmitted) {
     return (
       <QuizReview
-        questions={QUIZ_QUESTIONS}
+        questions={quizQuestions}
         userAnswers={userAnswers}
         onRetake={handleRetake}
       />
@@ -75,9 +132,18 @@ export const QuizSection: React.FC = () => {
         </div>
         <h1 className="page-main-title">Uji Pemahaman Larutan Elektrolit</h1>
         <p className="page-main-desc">
-          Kerjakan 10 soal pilihan ganda berikut untuk menguji pemahaman konsep teori Arrhenius,
-          derajat ionisasi, dan analisis hasil pengamatan laboratorium.
+          Kerjakan {totalQuestions} butir soal pilihan ganda berikut untuk menguji pemahaman konsep
+          teori Arrhenius, derajat ionisasi, dan analisis hasil pengamatan laboratorium.
         </p>
+
+        {/* Student Session Banner */}
+        <div className="quiz-student-banner">
+          <User size={15} />
+          <span>
+            Mengerjakan sebagai: <strong>{session.name}</strong> ({session.studentClass || 'XII MIPA 1'})
+          </span>
+          <span className="quiz-sync-hint">• Hasil kuis akan otomatis tercatat ke Rekap Nilai Guru</span>
+        </div>
 
         {/* Progress Tracker */}
         <div className="quiz-progress-bar-wrap">
@@ -85,7 +151,9 @@ export const QuizSection: React.FC = () => {
             <span>
               Terjawab: <strong>{answeredCount}</strong> dari {totalQuestions} Soal
             </span>
-            <span>Soal {currentIndex + 1} dari {totalQuestions}</span>
+            <span>
+              Soal {safeIndex + 1} dari {totalQuestions}
+            </span>
           </div>
           <div className="progress-bar-bg">
             <div
@@ -99,9 +167,9 @@ export const QuizSection: React.FC = () => {
       {/* Question Stepper Buttons */}
       <div className="quiz-stepper-bar">
         <div className="stepper-grid">
-          {QUIZ_QUESTIONS.map((q, idx) => {
+          {quizQuestions.map((q, idx) => {
             const isAnswered = userAnswers[q.id] !== undefined;
-            const isCurrent = idx === currentIndex;
+            const isCurrent = idx === safeIndex;
 
             return (
               <button
@@ -125,7 +193,7 @@ export const QuizSection: React.FC = () => {
         {/* Card Header Meta */}
         <div className="q-card-header">
           <div className="q-header-left">
-            <span className="q-number-pill">Soal {currentIndex + 1}</span>
+            <span className="q-number-pill">Soal {safeIndex + 1}</span>
             <span className="q-topic-tag">{currentQ.topic}</span>
           </div>
           <span className={`q-difficulty-badge ${currentQ.difficulty.toLowerCase()}`}>
@@ -164,8 +232,8 @@ export const QuizSection: React.FC = () => {
             type="button"
             id="quiz-btn-prev"
             className="btn btn-outline"
-            disabled={currentIndex === 0}
-            onClick={() => setCurrentIndex(currentIndex - 1)}
+            disabled={safeIndex === 0}
+            onClick={() => setCurrentIndex(safeIndex - 1)}
           >
             <ChevronLeft size={18} />
             <span>Sebelumnya</span>
@@ -180,12 +248,12 @@ export const QuizSection: React.FC = () => {
           </div>
 
           <div className="q-footer-right">
-            {currentIndex < totalQuestions - 1 ? (
+            {safeIndex < totalQuestions - 1 ? (
               <button
                 type="button"
                 id="quiz-btn-next"
                 className="btn btn-primary"
-                onClick={() => setCurrentIndex(currentIndex + 1)}
+                onClick={() => setCurrentIndex(safeIndex + 1)}
               >
                 <span>Selanjutnya</span>
                 <ChevronRight size={18} />
@@ -212,7 +280,7 @@ export const QuizSection: React.FC = () => {
       </div>
 
       {/* Direct Submit Button if anywhere in quiz */}
-      {answeredCount > 0 && currentIndex !== totalQuestions - 1 && (
+      {answeredCount > 0 && safeIndex !== totalQuestions - 1 && (
         <div className="quiz-early-submit-bar">
           <button
             type="button"
@@ -226,7 +294,9 @@ export const QuizSection: React.FC = () => {
             }}
           >
             <Send size={15} />
-            <span>Selesaikan & Kumpulkan Kuis ({answeredCount}/{totalQuestions} Soal Terjawab)</span>
+            <span>
+              Selesaikan & Kumpulkan Kuis ({answeredCount}/{totalQuestions} Soal Terjawab)
+            </span>
           </button>
         </div>
       )}
@@ -241,8 +311,8 @@ export const QuizSection: React.FC = () => {
             <h3 className="modal-title">Masih Ada Soal yang Belum Terjawab</h3>
             <p className="modal-desc">
               Kamu baru menjawab <strong>{answeredCount}</strong> dari {totalQuestions} soal.
-              Terdapat <strong>{unansweredCount}</strong> soal yang masih kosong.
-              Apakah kamu yakin ingin mengumpulkan kuis sekarang?
+              Terdapat <strong>{unansweredCount}</strong> soal yang masih kosong. Apakah kamu yakin
+              ingin mengumpulkan kuis sekarang?
             </p>
             <div className="modal-actions">
               <button

@@ -5,9 +5,16 @@ import { useProgress, type ActiveTab } from '../context/ProgressContext';
 const CURRENT_YEAR = 2026;
 
 export const Footer: React.FC = () => {
-  const { setActiveTab } = useProgress();
+  const { setActiveTab, session, openAuthModal } = useProgress();
 
   const handleNav = (tab: ActiveTab) => {
+    if ((tab === 'bank-soal' || tab === 'rekap-nilai') && session.role !== 'guru') {
+      openAuthModal(
+        'guru',
+        `Masukkan PIN Guru untuk mengakses ${tab === 'bank-soal' ? 'Bank Soal' : 'Rekapitulasi Nilai'}.`
+      );
+      return;
+    }
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -80,6 +87,24 @@ export const Footer: React.FC = () => {
                   onClick={() => handleNav('progres')}
                 >
                   Laporan Progres Belajar
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  id="footer-link-bank-soal"
+                  onClick={() => handleNav('bank-soal')}
+                >
+                  Bank Soal (Akses Guru 🔒)
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  id="footer-link-rekap-nilai"
+                  onClick={() => handleNav('rekap-nilai')}
+                >
+                  Rekap Nilai Siswa (Akses Guru 🔒)
                 </button>
               </li>
             </ul>
