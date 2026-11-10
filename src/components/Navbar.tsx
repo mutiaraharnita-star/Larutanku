@@ -132,20 +132,6 @@ export const Navbar: React.FC = () => {
               </button>
             );
           })}
-
-          {/* Quick locked tab button for Student to discover Guru tools */}
-          {!isGuru && (
-            <button
-              type="button"
-              id="nav-btn-unlock-guru"
-              className="nav-button nav-locked-btn"
-              onClick={() => handleRequestSwitchRole('guru')}
-              title="Akses panel Guru dilindungi PIN (Bank Soal & Rekap Nilai)"
-            >
-              <Lock size={15} />
-              <span>Akses Guru</span>
-            </button>
-          )}
         </nav>
 
         {/* Navbar Right: Role Pill, Switcher, Progress, Mobile Toggle */}
@@ -317,19 +303,6 @@ export const Navbar: React.FC = () => {
                 {activeTab === item.id && <span className="active-badge">Aktif</span>}
               </button>
             ))}
-
-            {!isGuru && (
-              <button
-                type="button"
-                className="mobile-nav-item locked-item"
-                onClick={() => handleRequestSwitchRole('guru')}
-              >
-                <div className="mobile-item-left">
-                  <Lock size={18} />
-                  <span>Buka Akses Guru (PIN)</span>
-                </div>
-              </button>
-            )}
           </div>
         </div>
       )}
