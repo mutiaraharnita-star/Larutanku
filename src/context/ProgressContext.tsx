@@ -6,6 +6,8 @@ import type {
   UserSession,
   QuizSubmission,
   QuizQuestion,
+  AuthUser,
+  AuthModalView,
 } from '../types/chemistry';
 import { LEARNING_MODULES } from '../data/materials';
 import { QUIZ_QUESTIONS } from '../data/quizQuestions';
@@ -39,9 +41,37 @@ interface ProgressContextType {
   siswaPin: string;
   authModalOpen: boolean;
   authTargetRole: UserRole;
+  authInitialView: AuthModalView;
   authReason: string;
-  openAuthModal: (targetRole: UserRole, reason?: string) => void;
+  openAuthModal: (
+    targetRoleOrView?: UserRole | AuthModalView,
+    reason?: string,
+    view?: AuthModalView
+  ) => void;
   closeAuthModal: () => void;
+  loginWithEmail: (
+    email: string,
+    password: string
+  ) => { success: boolean; message: string; user?: AuthUser };
+  registerWithEmail: (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    studentClass?: string
+  ) => { success: boolean; message: string; user?: AuthUser };
+  loginWithGoogle: (account?: {
+    name: string;
+    email: string;
+    role: UserRole;
+    avatar?: string;
+    studentClass?: string;
+  }) => { success: boolean; message: string; user?: AuthUser };
+  resetPasswordWithEmail: (
+    email: string,
+    newPassword: string
+  ) => { success: boolean; message: string };
+  registeredUsers: AuthUser[];
   verifyAndSwitchRole: (
     targetRole: UserRole,
     enteredPin: string,
@@ -76,9 +106,35 @@ const STORAGE_KEY_GURU_PIN = 'chemlearn_xii_guru_pin_v1';
 const STORAGE_KEY_SISWA_PIN = 'chemlearn_xii_siswa_pin_v1';
 const STORAGE_KEY_QUESTIONS = 'chemlearn_xii_quiz_questions_v1';
 const STORAGE_KEY_SUBMISSIONS = 'chemlearn_xii_quiz_submissions_v1';
+const STORAGE_KEY_USERS = 'chemlearn_xii_registered_users_v1';
 
 const DEFAULT_GURU_PIN = '8888';
 const DEFAULT_SISWA_PIN = '1234';
+
+const defaultUsers: AuthUser[] = [
+  {
+    id: 'user_siswa_1',
+    name: 'Ahmad Fauzi',
+    email: 'siswa@chemlearn.id',
+    password: 'password123',
+    role: 'siswa',
+    studentClass: 'XII MIPA 1',
+    avatar: '🎒',
+    authProvider: 'email',
+    createdAt: '2026-11-01',
+  },
+  {
+    id: 'user_guru_1',
+    name: 'Dra. Siti Aminah, M.Pd',
+    email: 'guru@chemlearn.id',
+    password: 'password123',
+    role: 'guru',
+    studentClass: undefined,
+    avatar: '👩‍🏫',
+    authProvider: 'email',
+    createdAt: '2026-11-01',
+  },
+];
 
 const defaultProgress: UserProgress = {
   completedModules: [],
@@ -195,7 +251,22 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Auth Modal State
   const [authModalOpen, setAuthModalOpen] = useState<boolean>(false);
   const [authTargetRole, setAuthTargetRole] = useState<UserRole>('guru');
+  const [authInitialView, setAuthInitialView] = useState<AuthModalView>('login');
   const [authReason, setAuthReason] = useState<string>('');
+
+  // Registered Users State
+  const [registeredUsers, setRegisteredUsers] = useState<AuthUser[]>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_USERS);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse localStorage users:', e);
+    }
+    return defaultUsers;
+  });
 
   // Learning Progress State
   const [progress, setProgress] = useState<UserProgress>(() => {
@@ -285,9 +356,32 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [quizSubmissions]);
 
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_USERS, JSON.stringify(registeredUsers));
+    } catch (e) {
+      console.warn('Failed to save users to localStorage:', e);
+    }
+  }, [registeredUsers]);
+
   // Auth Modal Controls
-  const openAuthModal = (targetRole: UserRole, reason: string = '') => {
-    setAuthTargetRole(targetRole);
+  const openAuthModal = (
+    targetRoleOrView?: UserRole | AuthModalView,
+    reason: string = '',
+    explicitView?: AuthModalView
+  ) => {
+    if (targetRoleOrView === 'guru' || targetRoleOrView === 'siswa') {
+      setAuthTargetRole(targetRoleOrView);
+      setAuthInitialView(explicitView || 'login');
+    } else if (
+      targetRoleOrView === 'login' ||
+      targetRoleOrView === 'register' ||
+      targetRoleOrView === 'forgot'
+    ) {
+      setAuthInitialView(targetRoleOrView);
+    } else {
+      setAuthInitialView('login');
+    }
     setAuthReason(reason);
     setAuthModalOpen(true);
   };
@@ -295,6 +389,209 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const closeAuthModal = () => {
     setAuthModalOpen(false);
     setAuthReason('');
+  };
+
+  // Login with Email & Password
+  const loginWithEmail = (
+    email: string,
+    password: string
+  ): { success: boolean; message: string; user?: AuthUser } => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    const user = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (!user) {
+      return {
+        success: false,
+        message: 'Email tidak ditemukan. Silakan periksa kembali atau daftar akun baru.',
+      };
+    }
+
+    if (user.password && user.password !== cleanPass) {
+      return {
+        success: false,
+        message: 'Kata sandi tidak sesuai! Silakan coba lagi atau gunakan menu Lupa Password.',
+      };
+    }
+
+    setSession({
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      studentClass: user.studentClass,
+      avatar: user.avatar,
+      isLoggedIn: true,
+      authProvider: user.authProvider,
+    });
+
+    closeAuthModal();
+
+    if (user.role === 'guru' && (activeTab === 'kuis' || activeTab === 'progres')) {
+      setActiveTab('bank-soal');
+    }
+
+    return {
+      success: true,
+      message: `Selamat datang kembali, ${user.name}!`,
+      user,
+    };
+  };
+
+  // Register new User
+  const registerWithEmail = (
+    name: string,
+    email: string,
+    password: string,
+    role: UserRole,
+    studentClass?: string
+  ): { success: boolean; message: string; user?: AuthUser } => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    const cleanPass = password.trim();
+
+    if (!cleanName || !cleanEmail || !cleanPass) {
+      return {
+        success: false,
+        message: 'Mohon lengkapi semua kolom pendaftaran.',
+      };
+    }
+
+    const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return {
+        success: false,
+        message: 'Email ini sudah terdaftar! Silakan langsung masuk.',
+      };
+    }
+
+    const newUser: AuthUser = {
+      id: `user_${Date.now()}`,
+      name: cleanName,
+      email: cleanEmail,
+      password: cleanPass,
+      role,
+      studentClass: role === 'siswa' ? studentClass || 'XII MIPA 1' : undefined,
+      avatar: role === 'guru' ? '👨‍🏫' : '🎒',
+      authProvider: 'email',
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    setRegisteredUsers((prev) => [newUser, ...prev]);
+
+    setSession({
+      role: newUser.role,
+      name: newUser.name,
+      email: newUser.email,
+      studentClass: newUser.studentClass,
+      avatar: newUser.avatar,
+      isLoggedIn: true,
+      authProvider: 'email',
+    });
+
+    closeAuthModal();
+
+    if (role === 'guru') {
+      setActiveTab('bank-soal');
+    }
+
+    return {
+      success: true,
+      message: `Pendaftaran berhasil! Selamat datang, ${newUser.name}.`,
+      user: newUser,
+    };
+  };
+
+  // Login with Google (Simulation)
+  const loginWithGoogle = (account?: {
+    name: string;
+    email: string;
+    role: UserRole;
+    avatar?: string;
+    studentClass?: string;
+  }): { success: boolean; message: string; user?: AuthUser } => {
+    const targetName = account?.name || 'Ahmad Fauzi';
+    const targetEmail = (account?.email || 'ahmad.fauzi@gmail.com').toLowerCase();
+    const targetRole = account?.role || 'siswa';
+    const targetClass = account?.studentClass || (targetRole === 'siswa' ? 'XII MIPA 1' : undefined);
+    const targetAvatar = account?.avatar || (targetRole === 'guru' ? '👩‍🏫' : '👨‍🎓');
+
+    let user = registeredUsers.find((u) => u.email.toLowerCase() === targetEmail);
+
+    if (!user) {
+      user = {
+        id: `google_${Date.now()}`,
+        name: targetName,
+        email: targetEmail,
+        role: targetRole,
+        studentClass: targetClass,
+        avatar: targetAvatar,
+        authProvider: 'google',
+        createdAt: new Date().toISOString().split('T')[0],
+      };
+      setRegisteredUsers((prev) => [user!, ...prev]);
+    }
+
+    setSession({
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      studentClass: user.studentClass,
+      avatar: user.avatar,
+      isLoggedIn: true,
+      authProvider: 'google',
+    });
+
+    closeAuthModal();
+
+    if (user.role === 'guru') {
+      setActiveTab('bank-soal');
+    }
+
+    return {
+      success: true,
+      message: `Berhasil masuk dengan akun Google: ${user.email}`,
+      user,
+    };
+  };
+
+  // Reset Password with Email
+  const resetPasswordWithEmail = (
+    email: string,
+    newPassword: string
+  ): { success: boolean; message: string } => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPass = newPassword.trim();
+
+    if (!cleanPass || cleanPass.length < 6) {
+      return {
+        success: false,
+        message: 'Kata sandi baru minimal 6 karakter!',
+      };
+    }
+
+    const index = registeredUsers.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+
+    if (index === -1) {
+      return {
+        success: false,
+        message: 'Email tidak ditemukan di sistem! Pastikan email sudah terdaftar.',
+      };
+    }
+
+    setRegisteredUsers((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        password: cleanPass,
+      };
+      return updated;
+    });
+
+    return {
+      success: true,
+      message: 'Kata sandi berhasil diperbarui! Silakan masuk menggunakan kata sandi baru Anda.',
+    };
   };
 
   // Crucial requirement: Verify PIN before switching role
@@ -547,9 +844,15 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         siswaPin,
         authModalOpen,
         authTargetRole,
+        authInitialView,
         authReason,
         openAuthModal,
         closeAuthModal,
+        loginWithEmail,
+        registerWithEmail,
+        loginWithGoogle,
+        resetPasswordWithEmail,
+        registeredUsers,
         verifyAndSwitchRole,
         logout,
         updateSessionProfile,

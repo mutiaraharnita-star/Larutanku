@@ -96,11 +96,28 @@ export interface UserProgress {
 
 export type UserRole = 'siswa' | 'guru';
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+  studentClass?: string;
+  avatar?: string;
+  authProvider: 'email' | 'google';
+  createdAt: string;
+}
+
+export type AuthModalView = 'login' | 'register' | 'forgot';
+
 export interface UserSession {
   role: UserRole;
   name: string;
+  email?: string;
+  avatar?: string;
   studentClass?: string;
   isLoggedIn: boolean;
+  authProvider?: 'email' | 'google';
 }
 
 export interface QuizSubmission {

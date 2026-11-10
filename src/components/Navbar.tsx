@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   ArrowRightLeft,
   LogOut,
+  LogIn,
 } from 'lucide-react';
 import { useProgress, type ActiveTab } from '../context/ProgressContext';
 
@@ -153,104 +154,147 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Role Status Pill & Dropdown */}
-          <div className="role-switcher-wrapper">
+          {/* Role Status Pill & Dropdown / Login Button */}
+          {!session.isLoggedIn ? (
             <button
               type="button"
-              id="role-indicator-pill"
-              className={`role-indicator-pill ${isGuru ? 'role-guru' : 'role-siswa'}`}
-              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-              title="Klik untuk info akun atau beralih akun dengan PIN"
+              id="btn-nav-login"
+              className="btn btn-primary btn-sm btn-nav-login"
+              onClick={() => openAuthModal('login')}
             >
-              <div className="role-pill-icon">
-                {isGuru ? <GraduationCap size={16} /> : <User size={16} />}
-              </div>
-              <div className="role-pill-info">
-                <span className="role-pill-type">{isGuru ? 'Guru' : 'Siswa'}</span>
-                <span className="role-pill-name">{session.name}</span>
-              </div>
+              <LogIn size={15} />
+              <span>Masuk / Daftar</span>
             </button>
-
-            {/* Dropdown Menu */}
-            {profileDropdownOpen && (
-              <div className="role-dropdown-menu" id="role-profile-dropdown">
-                <div className="dropdown-header">
-                  <span className="dropdown-title">Status Akun Aktif</span>
-                  <div className={`status-badge-mini ${isGuru ? 'badge-guru' : 'badge-siswa'}`}>
-                    {isGuru ? '👨‍🏫 Guru Kimia' : '🎒 Siswa XII'}
+          ) : (
+            <>
+              <div className="role-switcher-wrapper">
+                <button
+                  type="button"
+                  id="role-indicator-pill"
+                  className={`role-indicator-pill ${isGuru ? 'role-guru' : 'role-siswa'}`}
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  title="Klik untuk info akun atau beralih akun"
+                >
+                  <div className="role-pill-icon">
+                    {session.avatar ? (
+                      <span className="role-pill-emoji">{session.avatar}</span>
+                    ) : isGuru ? (
+                      <GraduationCap size={16} />
+                    ) : (
+                      <User size={16} />
+                    )}
                   </div>
-                </div>
-
-                <div className="dropdown-body">
-                  <div className="dropdown-user-info">
-                    <span className="d-name">{session.name}</span>
-                    <span className="d-role">
-                      {isGuru ? 'Akses Pengelolaan Bank Soal & Rekap' : `Kelas: ${session.studentClass || 'XII MIPA 1'}`}
+                  <div className="role-pill-info">
+                    <span className="role-pill-type">
+                      {isGuru ? 'Guru' : 'Siswa'}
+                      {session.authProvider === 'google' && (
+                        <span className="google-badge-tag">Google</span>
+                      )}
                     </span>
+                    <span className="role-pill-name">{session.name}</span>
                   </div>
+                </button>
 
-                  <div className="dropdown-divider" />
-
-                  {/* Switch Account Action - Always opens PIN Modal */}
-                  {isGuru ? (
-                    <button
-                      type="button"
-                      className="dropdown-item-btn"
-                      onClick={() => handleRequestSwitchRole('siswa')}
-                    >
-                      <ArrowRightLeft size={16} />
-                      <div className="dd-item-text">
-                        <span>Beralih ke Akun Siswa</span>
-                        <small>Memerlukan verifikasi PIN Siswa</small>
+                {/* Dropdown Menu */}
+                {profileDropdownOpen && (
+                  <div className="role-dropdown-menu" id="role-profile-dropdown">
+                    <div className="dropdown-header">
+                      <span className="dropdown-title">Status Akun Aktif</span>
+                      <div className={`status-badge-mini ${isGuru ? 'badge-guru' : 'badge-siswa'}`}>
+                        {isGuru ? '👨‍🏫 Guru Kimia' : '🎒 Siswa XII'}
                       </div>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="dropdown-item-btn"
-                      onClick={() => handleRequestSwitchRole('guru')}
-                    >
-                      <Lock size={16} />
-                      <div className="dd-item-text">
-                        <span>Beralih ke Akun Guru</span>
-                        <small>Memerlukan verifikasi PIN Guru</small>
+                    </div>
+
+                    <div className="dropdown-body">
+                      <div className="dropdown-user-info">
+                        <span className="d-name">{session.name}</span>
+                        {session.email && <span className="d-email">{session.email}</span>}
+                        <span className="d-role">
+                          {isGuru
+                            ? 'Akses Pengelolaan Bank Soal & Rekap'
+                            : `Kelas: ${session.studentClass || 'XII MIPA 1'}`}
+                        </span>
                       </div>
-                    </button>
-                  )}
 
-                  <div className="dropdown-divider" />
+                      <div className="dropdown-divider" />
 
-                  <button
-                    type="button"
-                    className="dropdown-item-btn text-danger"
-                    onClick={() => {
-                      logout();
-                      setProfileDropdownOpen(false);
-                    }}
-                  >
-                    <LogOut size={16} />
-                    <span>Keluar (Logout)</span>
-                  </button>
-                </div>
+                      {/* Switch Account Action - Always opens PIN Modal */}
+                      {isGuru ? (
+                        <button
+                          type="button"
+                          className="dropdown-item-btn"
+                          onClick={() => handleRequestSwitchRole('siswa')}
+                        >
+                          <ArrowRightLeft size={16} />
+                          <div className="dd-item-text">
+                            <span>Beralih ke Akun Siswa</span>
+                            <small>Memerlukan verifikasi PIN Siswa</small>
+                          </div>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="dropdown-item-btn"
+                          onClick={() => handleRequestSwitchRole('guru')}
+                        >
+                          <Lock size={16} />
+                          <div className="dd-item-text">
+                            <span>Beralih ke Akun Guru</span>
+                            <small>Memerlukan verifikasi PIN Guru</small>
+                          </div>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        className="dropdown-item-btn"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          openAuthModal('login');
+                        }}
+                      >
+                        <LogIn size={16} />
+                        <div className="dd-item-text">
+                          <span>Ganti Akun / Masuk Akun Lain</span>
+                          <small>Masuk dengan email / Google</small>
+                        </div>
+                      </button>
+
+                      <div className="dropdown-divider" />
+
+                      <button
+                        type="button"
+                        className="dropdown-item-btn text-danger"
+                        onClick={() => {
+                          logout();
+                          setProfileDropdownOpen(false);
+                        }}
+                      >
+                        <LogOut size={16} />
+                        <span>Keluar (Logout)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          {/* Direct Switch Role Quick Button (prominent on desktop) */}
-          <button
-            type="button"
-            id="quick-switch-role-btn"
-            className={`quick-switch-btn ${isGuru ? 'switch-to-siswa' : 'switch-to-guru'}`}
-            onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
-            title={
-              isGuru
-                ? 'Beralih ke akun siswa (harus memasukkan PIN Siswa)'
-                : 'Beralih ke akun guru (harus memasukkan PIN Guru)'
-            }
-          >
-            <Lock size={14} />
-            <span>{isGuru ? 'Beralih ke Siswa' : 'Masuk Guru'}</span>
-          </button>
+              {/* Direct Switch Role Quick Button (prominent on desktop) */}
+              <button
+                type="button"
+                id="quick-switch-role-btn"
+                className={`quick-switch-btn ${isGuru ? 'switch-to-siswa' : 'switch-to-guru'}`}
+                onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
+                title={
+                  isGuru
+                    ? 'Beralih ke akun siswa (harus memasukkan PIN Siswa)'
+                    : 'Beralih ke akun guru (harus memasukkan PIN Guru)'
+                }
+              >
+                <Lock size={14} />
+                <span>{isGuru ? 'Beralih ke Siswa' : 'Masuk Guru'}</span>
+              </button>
+            </>
+          )}
 
           {/* Mobile Menu Toggle Button */}
           <button
@@ -270,22 +314,51 @@ export const Navbar: React.FC = () => {
         <div className="mobile-drawer" id="mobile-nav-drawer">
           <div className="mobile-drawer-inner">
             {/* Mobile Role Banner */}
-            <div className={`mobile-role-card ${isGuru ? 'role-guru' : 'role-siswa'}`}>
-              <div className="m-role-info">
-                {isGuru ? <GraduationCap size={20} /> : <User size={20} />}
-                <div>
-                  <strong>{isGuru ? 'Mode Guru' : 'Mode Siswa'}</strong>: {session.name}
+            {!session.isLoggedIn ? (
+              <div className="mobile-guest-card">
+                <button
+                  type="button"
+                  className="btn btn-primary full-width"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    openAuthModal('login');
+                  }}
+                >
+                  <LogIn size={16} />
+                  <span>Masuk ke Akun / Daftar</span>
+                </button>
+              </div>
+            ) : (
+              <div className={`mobile-role-card ${isGuru ? 'role-guru' : 'role-siswa'}`}>
+                <div className="m-role-info">
+                  {isGuru ? <GraduationCap size={20} /> : <User size={20} />}
+                  <div>
+                    <strong>{isGuru ? 'Mode Guru' : 'Mode Siswa'}</strong>: {session.name}
+                  </div>
+                </div>
+                <div className="m-role-actions">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline"
+                    onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
+                  >
+                    <Lock size={13} />
+                    <span>{isGuru ? 'Beralih ke Siswa' : 'Beralih ke Guru'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-ghost text-danger"
+                    onClick={() => {
+                      logout();
+                      setMobileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut size={13} />
+                    <span>Keluar</span>
+                  </button>
                 </div>
               </div>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline"
-                onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
-              >
-                <Lock size={13} />
-                <span>{isGuru ? 'Beralih ke Siswa (PIN)' : 'Beralih ke Guru (PIN)'}</span>
-              </button>
-            </div>
+            )}
 
             {navItems.map((item) => (
               <button
