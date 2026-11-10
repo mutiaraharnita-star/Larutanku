@@ -16,6 +16,7 @@ import {
   ArrowRightLeft,
   LogOut,
   LogIn,
+  Compass,
 } from 'lucide-react';
 import { useProgress, type ActiveTab } from '../context/ProgressContext';
 
@@ -156,15 +157,23 @@ export const Navbar: React.FC = () => {
 
           {/* Role Status Pill & Dropdown / Login Button */}
           {!session.isLoggedIn ? (
-            <button
-              type="button"
-              id="btn-nav-login"
-              className="btn btn-primary btn-sm btn-nav-login"
-              onClick={() => openAuthModal('login')}
-            >
-              <LogIn size={15} />
-              <span>Masuk / Daftar</span>
-            </button>
+            <div className="nav-auth-wrapper">
+              {session.isGuest && (
+                <span className="nav-guest-pill" title="Anda saat ini menjelajah sebagai Tamu">
+                  <Compass size={13} />
+                  <span>Mode Tamu</span>
+                </span>
+              )}
+              <button
+                type="button"
+                id="btn-nav-login"
+                className="btn btn-primary btn-sm btn-nav-login"
+                onClick={() => openAuthModal('login')}
+              >
+                <LogIn size={15} />
+                <span>Masuk / Daftar</span>
+              </button>
+            </div>
           ) : (
             <>
               <div className="role-switcher-wrapper">
@@ -316,6 +325,12 @@ export const Navbar: React.FC = () => {
             {/* Mobile Role Banner */}
             {!session.isLoggedIn ? (
               <div className="mobile-guest-card">
+                {session.isGuest && (
+                  <div className="mobile-guest-hint">
+                    <Compass size={14} />
+                    <span>Mode Tamu (Belum Masuk)</span>
+                  </div>
+                )}
                 <button
                   type="button"
                   className="btn btn-primary full-width"

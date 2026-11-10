@@ -10,11 +10,16 @@ import {
   Atom,
   Layers,
   Award,
+  Compass,
+  LogIn,
+  Lock,
+  GraduationCap,
+  UserCheck,
 } from 'lucide-react';
 import { useProgress } from '../../context/ProgressContext';
 
 export const HomeSection: React.FC = () => {
-  const { setActiveTab } = useProgress();
+  const { setActiveTab, session, openAuthModal, continueAsGuest } = useProgress();
 
   return (
     <div className="home-container" id="home-section">
@@ -162,6 +167,196 @@ export const HomeSection: React.FC = () => {
             </div>
           </div>
         </div>
+      </section>
+
+      {/* PINTU MASUK & PILIHAN AKSES (LOGIN SISWA, GURU & FITUR TAMU SEBELUM EXPLORE) */}
+      <section className="section-block entrance-gateway-section" id="auth-gateway-section">
+        {!session.isLoggedIn ? (
+          <div className="gateway-container">
+            <div className="gateway-header text-center">
+              <div className="section-pill">
+                <Sparkles size={14} />
+                <span>Pintu Masuk & Pilihan Akses Belajar</span>
+              </div>
+              <h2 className="gateway-main-title">Pilih Cara Masuk Sebelum Mengeksplorasi Web</h2>
+              <p className="gateway-subtitle">
+                Masuk dengan akun Siswa atau Guru untuk menyimpan riwayat belajar dan kuis, atau
+                langsung coba modul dan laboratorium virtual secara bebas sebagai tamu.
+              </p>
+            </div>
+
+            <div className="gateway-cards-grid">
+              {/* Card 1: Siswa */}
+              <div className="gateway-card student-card">
+                <div className="gw-card-top">
+                  <div className="gw-icon-box bg-cyan">
+                    <GraduationCap size={24} />
+                  </div>
+                  <span className="gw-badge badge-student">Akses Siswa</span>
+                </div>
+                <h3 className="gw-title">Login / Daftar Siswa</h3>
+                <p className="gw-desc">
+                  Mengerjakan kuis evaluasi 10 butir soal berstandar HOTS, mencatat perolehan nilai
+                  kelulusan KKM, dan menyimpan lembar jurnal praktikum laboratorium virtual.
+                </p>
+                <div className="gw-features">
+                  <span>✓ Simpan nilai kuis evaluasi otomatis</span>
+                  <span>✓ Lembar pengamatan laboratorium virtual</span>
+                  <span>✓ Lencana capaian & riwayat belajar</span>
+                </div>
+                <div className="gw-actions">
+                  <button
+                    type="button"
+                    id="btn-gw-login-siswa"
+                    className="btn btn-primary btn-sm full-width"
+                    onClick={() => openAuthModal('siswa', 'Masuk ke Akun Siswa')}
+                  >
+                    <LogIn size={15} />
+                    <span>Masuk sebagai Siswa</span>
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-gw-register-siswa"
+                    className="btn btn-outline btn-xs full-width"
+                    onClick={() => openAuthModal('register')}
+                  >
+                    <span>Belum punya akun? Daftar Baru</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 2: Guru */}
+              <div className="gateway-card teacher-card">
+                <div className="gw-card-top">
+                  <div className="gw-icon-box bg-purple">
+                    <Lock size={24} />
+                  </div>
+                  <span className="gw-badge badge-teacher">Akses Guru (PIN/Email)</span>
+                </div>
+                <h3 className="gw-title">Login Tenaga Pendidik</h3>
+                <p className="gw-desc">
+                  Khusus Guru Kimia: Mengelola Bank Soal kuis dinamis (tambah/edit/hapus butir soal),
+                  memantau ketuntasan KKM siswa kelas XII, dan mengekspor rekapitulasi nilai ke Excel.
+                </p>
+                <div className="gw-features">
+                  <span>✓ Kelola & sunting Bank Soal kuis</span>
+                  <span>✓ Rekapitulasi nilai seluruh siswa</span>
+                  <span>✓ Ekspor spreadsheet & cetak laporan</span>
+                </div>
+                <div className="gw-actions">
+                  <button
+                    type="button"
+                    id="btn-gw-login-guru"
+                    className="btn btn-teacher-portal btn-sm full-width"
+                    onClick={() => openAuthModal('guru', 'Masuk ke Portal Pengelolaan Guru')}
+                  >
+                    <Lock size={15} />
+                    <span>Masuk Portal Guru (PIN: 8888)</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Card 3: Tamu (Guest Mode) */}
+              <div className="gateway-card guest-card">
+                <div className="gw-card-top">
+                  <div className="gw-icon-box bg-emerald">
+                    <Compass size={24} />
+                  </div>
+                  <span className="gw-badge badge-guest">Tanpa Perlu Login</span>
+                </div>
+                <h3 className="gw-title">Explore Mode Tamu</h3>
+                <p className="gw-desc">
+                  Ingin melihat dan mencoba terlebih dahulu? Langsung telusuri 5 bab materi konsep daya
+                  hantar listrik dan operasikan simulasi alat uji 11 larutan secara bebas tanpa akun.
+                </p>
+                <div className="gw-features">
+                  <span>✓ Akses 5 modul teori Arrhenius</span>
+                  <span>✓ Uji simulasi saklar 9V & mikroskop ion</span>
+                  <span>✓ Langsung coba tanpa registrasi</span>
+                </div>
+                <div className="gw-actions">
+                  <button
+                    type="button"
+                    id="btn-gw-continue-guest"
+                    className="btn btn-emerald btn-sm full-width"
+                    onClick={() => continueAsGuest('lab')}
+                  >
+                    <Compass size={15} />
+                    <span>Mulai Explore sebagai Tamu &rarr;</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* User is already logged in */
+          <div className="active-session-banner">
+            <div className="asb-left">
+              <div className={`asb-icon-wrap ${session.role === 'guru' ? 'teacher' : 'student'}`}>
+                {session.role === 'guru' ? <GraduationCap size={26} /> : <UserCheck size={26} />}
+              </div>
+              <div className="asb-text">
+                <div className="asb-badge">
+                  <span>Sesi Aktif: {session.role === 'guru' ? '👨‍🏫 Guru Kimia' : '🎒 Siswa XII'}</span>
+                </div>
+                <h3 className="asb-welcome">
+                  Selamat Datang, <strong>{session.name}</strong>!
+                </h3>
+                <p className="asb-desc">
+                  {session.role === 'guru'
+                    ? 'Akses pengelolaan Bank Soal dan Rekapitulasi Nilai Siswa kelas XII siap digunakan.'
+                    : `Anda aktif di kelas ${session.studentClass || 'XII MIPA 1'}. Siap untuk melanjutkan eksplorasi pembelajaran hari ini?`}
+                </p>
+              </div>
+            </div>
+            <div className="asb-actions">
+              {session.role === 'guru' ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setActiveTab('bank-soal')}
+                  >
+                    <span>Buka Bank Soal</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setActiveTab('rekap-nilai')}
+                  >
+                    <span>Rekap Nilai Siswa</span>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => setActiveTab('lab')}
+                  >
+                    <FlaskConical size={16} />
+                    <span>Buka Lab Virtual</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setActiveTab('kuis')}
+                  >
+                    <Award size={16} />
+                    <span>Mulai Kuis</span>
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                className="btn btn-outline btn-xs"
+                onClick={() => openAuthModal('login')}
+              >
+                <span>Ganti Akun</span>
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
       {/* TUJUAN PEMBELAJARAN (LEARNING OBJECTIVES) */}

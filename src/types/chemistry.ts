@@ -117,6 +117,7 @@ export interface UserSession {
   avatar?: string;
   studentClass?: string;
   isLoggedIn: boolean;
+  isGuest?: boolean;
   authProvider?: 'email' | 'google';
 }
 

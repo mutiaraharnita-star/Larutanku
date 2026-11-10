@@ -72,6 +72,7 @@ interface ProgressContextType {
     newPassword: string
   ) => { success: boolean; message: string };
   registeredUsers: AuthUser[];
+  continueAsGuest: (targetTab?: ActiveTab) => void;
   verifyAndSwitchRole: (
     targetRole: UserRole,
     enteredPin: string,
@@ -146,9 +147,10 @@ const defaultProgress: UserProgress = {
 
 const defaultSession: UserSession = {
   role: 'siswa',
-  name: 'Siswa Kimia XII',
-  studentClass: 'XII MIPA 1',
-  isLoggedIn: true,
+  name: 'Tamu / Pengunjung',
+  studentClass: undefined,
+  isLoggedIn: false,
+  isGuest: true,
 };
 
 const defaultSubmissions: QuizSubmission[] = [
@@ -645,12 +647,26 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   };
 
+  const continueAsGuest = (targetTab?: ActiveTab) => {
+    setSession({
+      role: 'siswa',
+      name: 'Tamu / Pengunjung',
+      studentClass: undefined,
+      isLoggedIn: false,
+      isGuest: true,
+    });
+    if (targetTab) {
+      setActiveTab(targetTab);
+    }
+  };
+
   const logout = () => {
     setSession({
       role: 'siswa',
-      name: 'Tamu / Belum Login',
+      name: 'Tamu / Pengunjung',
       studentClass: undefined,
       isLoggedIn: false,
+      isGuest: true,
     });
     setActiveTab('beranda');
   };
@@ -853,6 +869,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         loginWithGoogle,
         resetPasswordWithEmail,
         registeredUsers,
+        continueAsGuest,
         verifyAndSwitchRole,
         logout,
         updateSessionProfile,
