@@ -73,9 +73,10 @@ interface ProgressContextType {
   ) => { success: boolean; message: string };
   registeredUsers: AuthUser[];
   continueAsGuest: (targetTab?: ActiveTab) => void;
+  switchRole: (targetRole: UserRole, targetTab?: ActiveTab) => void;
   verifyAndSwitchRole: (
     targetRole: UserRole,
-    enteredPin: string,
+    enteredPin?: string,
     name?: string,
     studentClass?: string
   ) => { success: boolean; message: string };
@@ -596,54 +597,44 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   };
 
-  // Crucial requirement: Verify PIN before switching role
-  const verifyAndSwitchRole = (
-    targetRole: UserRole,
-    enteredPin: string,
-    name?: string,
-    studentClass?: string
-  ): { success: boolean; message: string } => {
-    const requiredPin = targetRole === 'guru' ? guruPin : siswaPin;
-
-    if (enteredPin.trim() !== requiredPin.trim()) {
+  // Role switcher: Free access without PIN lock
+  const switchRole = (targetRole: UserRole, targetTab?: ActiveTab) => {
+    setSession((prev) => {
+      const defaultName =
+        targetRole === 'guru' ? 'Guru Kimia (Mode Bebas)' : 'Siswa Kimia (Mode Bebas)';
       return {
-        success: false,
-        message: `PIN ${targetRole === 'guru' ? 'Guru' : 'Siswa'} salah! Silakan periksa kembali PIN Anda.`,
+        ...prev,
+        role: targetRole,
+        name: prev.isLoggedIn ? prev.name : defaultName,
+        studentClass: targetRole === 'guru' ? undefined : (prev.studentClass || 'XII MIPA 1'),
       };
-    }
-
-    // PIN is correct! Update session
-    const resolvedName =
-      name && name.trim()
-        ? name.trim()
-        : targetRole === 'guru'
-        ? 'Dra. Siti Aminah, M.Pd'
-        : 'Siswa Kimia XII';
-
-    const resolvedClass =
-      targetRole === 'siswa'
-        ? (studentClass && studentClass.trim()) || 'XII MIPA 1'
-        : undefined;
-
-    setSession({
-      role: targetRole,
-      name: resolvedName,
-      studentClass: resolvedClass,
-      isLoggedIn: true,
     });
 
-    closeAuthModal();
-
-    // If switching to Guru, navigate to bank-soal or rekap-nilai if previously on student-only view
-    if (targetRole === 'guru' && (activeTab === 'kuis' || activeTab === 'progres')) {
+    if (targetTab) {
+      setActiveTab(targetTab);
+    } else if (targetRole === 'guru' && (activeTab === 'kuis' || activeTab === 'progres')) {
       setActiveTab('bank-soal');
     } else if (targetRole === 'siswa' && (activeTab === 'bank-soal' || activeTab === 'rekap-nilai')) {
       setActiveTab('beranda');
     }
+  };
+
+  // Backwards-compatible verifyAndSwitchRole without PIN barrier
+  const verifyAndSwitchRole = (
+    targetRole: UserRole,
+    _enteredPin?: string,
+    name?: string,
+    studentClass?: string
+  ): { success: boolean; message: string } => {
+    switchRole(targetRole);
+    if (name && name.trim()) {
+      updateSessionProfile(name.trim(), studentClass);
+    }
+    closeAuthModal();
 
     return {
       success: true,
-      message: `Berhasil masuk sebagai ${targetRole === 'guru' ? 'Guru Kimia' : 'Siswa'}!`,
+      message: `Berhasil beralih ke peran ${targetRole === 'guru' ? 'Guru Kimia' : 'Siswa'}!`,
     };
   };
 
@@ -870,6 +861,7 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         resetPasswordWithEmail,
         registeredUsers,
         continueAsGuest,
+        switchRole,
         verifyAndSwitchRole,
         logout,
         updateSessionProfile,

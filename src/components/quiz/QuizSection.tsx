@@ -86,7 +86,9 @@ export const QuizSection: React.FC = () => {
     saveQuizResult(score, totalQuestions);
 
     // Save into Teacher's centralized Rekap Nilai
-    const studentName = session.isLoggedIn && session.name ? session.name : 'Siswa Kimia XII';
+    const studentName = session.isLoggedIn && session.name
+      ? session.name
+      : (session.name || 'Siswa Kimia (Mode Bebas)');
     const studentClass = session.studentClass || 'XII MIPA 1';
 
     addQuizSubmission({
@@ -142,7 +144,11 @@ export const QuizSection: React.FC = () => {
           <span>
             Mengerjakan sebagai: <strong>{session.name}</strong> ({session.studentClass || 'XII MIPA 1'})
           </span>
-          <span className="quiz-sync-hint">• Hasil kuis akan otomatis tercatat ke Rekap Nilai Guru</span>
+          {session.isLoggedIn ? (
+            <span className="quiz-sync-hint">✓ Nilai otomatis tersinkron ke database akun</span>
+          ) : (
+            <span className="quiz-sync-hint">• Mode Bebas (Login opsional untuk simpan ke database)</span>
+          )}
         </div>
 
         {/* Progress Tracker */}

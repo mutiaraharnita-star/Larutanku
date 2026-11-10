@@ -5,15 +5,13 @@ import { useProgress, type ActiveTab } from '../context/ProgressContext';
 const CURRENT_YEAR = 2026;
 
 export const Footer: React.FC = () => {
-  const { setActiveTab, session, openAuthModal } = useProgress();
+  const { setActiveTab, session, switchRole } = useProgress();
 
   const handleNav = (tab: ActiveTab) => {
-    if ((tab === 'bank-soal' || tab === 'rekap-nilai') && session.role !== 'guru') {
-      openAuthModal(
-        'guru',
-        `Masukkan PIN Guru untuk mengakses ${tab === 'bank-soal' ? 'Bank Soal' : 'Rekapitulasi Nilai'}.`
-      );
-      return;
+    if (tab === 'bank-soal' || tab === 'rekap-nilai') {
+      if (session.role !== 'guru') {
+        switchRole('guru');
+      }
     }
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });

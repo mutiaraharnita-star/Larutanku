@@ -8,7 +8,6 @@ import {
   Menu,
   X,
   Sparkles,
-  Lock,
   User,
   GraduationCap,
   FileQuestion,
@@ -28,6 +27,7 @@ export const Navbar: React.FC = () => {
     session,
     openAuthModal,
     logout,
+    switchRole,
   } = useProgress();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -77,17 +77,7 @@ export const Navbar: React.FC = () => {
   const handleRequestSwitchRole = (target: 'guru' | 'siswa') => {
     setProfileDropdownOpen(false);
     setMobileMenuOpen(false);
-    if (target === 'guru') {
-      openAuthModal(
-        'guru',
-        'Untuk beralih ke Akun Guru dan membuka Bank Soal serta Rekap Nilai, masukkan PIN Guru.'
-      );
-    } else {
-      openAuthModal(
-        'siswa',
-        'Untuk beralih ke Akun Siswa, masukkan PIN Siswa.'
-      );
-    }
+    switchRole(target);
   };
 
   return (
@@ -155,23 +145,39 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
+          {/* Quick Role Switcher (Always accessible without PIN) */}
+          <button
+            type="button"
+            id="quick-switch-role-btn"
+            className={`quick-switch-btn ${isGuru ? 'switch-to-siswa' : 'switch-to-guru'}`}
+            onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
+            title={
+              isGuru
+                ? 'Beralih ke Mode Siswa (Tanpa Kunci/PIN)'
+                : 'Beralih ke Mode Guru (Tanpa Kunci/PIN)'
+            }
+          >
+            {isGuru ? <User size={14} /> : <GraduationCap size={14} />}
+            <span>{isGuru ? 'Mode Siswa' : 'Mode Guru'}</span>
+          </button>
+
           {/* Role Status Pill & Dropdown / Login Button */}
           {!session.isLoggedIn ? (
             <div className="nav-auth-wrapper">
-              {session.isGuest && (
-                <span className="nav-guest-pill" title="Anda saat ini menjelajah sebagai Tamu">
-                  <Compass size={13} />
-                  <span>Mode Tamu</span>
-                </span>
-              )}
               <button
                 type="button"
                 id="btn-nav-login"
                 className="btn btn-primary btn-sm btn-nav-login"
-                onClick={() => openAuthModal('login')}
+                onClick={() =>
+                  openAuthModal(
+                    'login',
+                    'Masuk ke Akun untuk Menyimpan Riwayat Belajar & Nilai ke Database'
+                  )
+                }
+                title="Login opsional — untuk menyimpan riwayat nilai ke database"
               >
                 <LogIn size={15} />
-                <span>Masuk / Daftar</span>
+                <span>Masuk (Simpan Database)</span>
               </button>
             </div>
           ) : (
@@ -227,7 +233,7 @@ export const Navbar: React.FC = () => {
 
                       <div className="dropdown-divider" />
 
-                      {/* Switch Account Action - Always opens PIN Modal */}
+                      {/* Direct Switch Role - No PIN */}
                       {isGuru ? (
                         <button
                           type="button"
@@ -236,8 +242,8 @@ export const Navbar: React.FC = () => {
                         >
                           <ArrowRightLeft size={16} />
                           <div className="dd-item-text">
-                            <span>Beralih ke Akun Siswa</span>
-                            <small>Memerlukan verifikasi PIN Siswa</small>
+                            <span>Beralih ke Mode Siswa</span>
+                            <small>Akses modul materi, lab, dan kuis evaluasi</small>
                           </div>
                         </button>
                       ) : (
@@ -246,10 +252,10 @@ export const Navbar: React.FC = () => {
                           className="dropdown-item-btn"
                           onClick={() => handleRequestSwitchRole('guru')}
                         >
-                          <Lock size={16} />
+                          <GraduationCap size={16} />
                           <div className="dd-item-text">
-                            <span>Beralih ke Akun Guru</span>
-                            <small>Memerlukan verifikasi PIN Guru</small>
+                            <span>Beralih ke Mode Guru</span>
+                            <small>Kelola Bank Soal & Rekap Nilai Siswa</small>
                           </div>
                         </button>
                       )}
@@ -286,22 +292,6 @@ export const Navbar: React.FC = () => {
                   </div>
                 )}
               </div>
-
-              {/* Direct Switch Role Quick Button (prominent on desktop) */}
-              <button
-                type="button"
-                id="quick-switch-role-btn"
-                className={`quick-switch-btn ${isGuru ? 'switch-to-siswa' : 'switch-to-guru'}`}
-                onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
-                title={
-                  isGuru
-                    ? 'Beralih ke akun siswa (harus memasukkan PIN Siswa)'
-                    : 'Beralih ke akun guru (harus memasukkan PIN Guru)'
-                }
-              >
-                <Lock size={14} />
-                <span>{isGuru ? 'Beralih ke Siswa' : 'Masuk Guru'}</span>
-              </button>
             </>
           )}
 
@@ -325,22 +315,32 @@ export const Navbar: React.FC = () => {
             {/* Mobile Role Banner */}
             {!session.isLoggedIn ? (
               <div className="mobile-guest-card">
-                {session.isGuest && (
-                  <div className="mobile-guest-hint">
-                    <Compass size={14} />
-                    <span>Mode Tamu (Belum Masuk)</span>
-                  </div>
-                )}
+                <div className="mobile-guest-hint">
+                  <Compass size={14} />
+                  <span>{isGuru ? 'Mode Guru (Bebas Akses)' : 'Mode Siswa (Bebas Akses)'}</span>
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline full-width"
+                  style={{ marginBottom: '8px' }}
+                  onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
+                >
+                  <ArrowRightLeft size={13} />
+                  <span>{isGuru ? 'Ganti ke Mode Siswa' : 'Ganti ke Mode Guru'}</span>
+                </button>
                 <button
                   type="button"
                   className="btn btn-primary full-width"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    openAuthModal('login');
+                    openAuthModal(
+                      'login',
+                      'Masuk ke Akun untuk Menyimpan Riwayat Belajar ke Database'
+                    );
                   }}
                 >
                   <LogIn size={16} />
-                  <span>Masuk ke Akun / Daftar</span>
+                  <span>Masuk Akun (Simpan Database)</span>
                 </button>
               </div>
             ) : (
@@ -357,7 +357,7 @@ export const Navbar: React.FC = () => {
                     className="btn btn-sm btn-outline"
                     onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
                   >
-                    <Lock size={13} />
+                    <ArrowRightLeft size={13} />
                     <span>{isGuru ? 'Beralih ke Siswa' : 'Beralih ke Guru'}</span>
                   </button>
                   <button

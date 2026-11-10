@@ -12,14 +12,14 @@ import {
   Award,
   Compass,
   LogIn,
-  Lock,
   GraduationCap,
   UserCheck,
+  FileQuestion,
 } from 'lucide-react';
 import { useProgress } from '../../context/ProgressContext';
 
 export const HomeSection: React.FC = () => {
-  const { setActiveTab, session, openAuthModal, continueAsGuest } = useProgress();
+  const { setActiveTab, session, openAuthModal, continueAsGuest, switchRole } = useProgress();
 
   return (
     <div className="home-container" id="home-section">
@@ -169,19 +169,20 @@ export const HomeSection: React.FC = () => {
         </div>
       </section>
 
-      {/* PINTU MASUK & PILIHAN AKSES (LOGIN SISWA, GURU & FITUR TAMU SEBELUM EXPLORE) */}
+      {/* PINTU MASUK & PILIHAN AKSES (LOGIN OPSIONAL - AKSES BEBAS TANPA KUNCI) */}
       <section className="section-block entrance-gateway-section" id="auth-gateway-section">
         {!session.isLoggedIn ? (
           <div className="gateway-container">
             <div className="gateway-header text-center">
               <div className="section-pill">
                 <Sparkles size={14} />
-                <span>Pintu Masuk & Pilihan Akses Belajar</span>
+                <span>Akses Bebas & Pilihan Sinkronisasi Database</span>
               </div>
-              <h2 className="gateway-main-title">Pilih Cara Masuk Sebelum Mengeksplorasi Web</h2>
+              <h2 className="gateway-main-title">Pilih Mode Belajar & Akses Web Tanpa Kunci</h2>
               <p className="gateway-subtitle">
-                Masuk dengan akun Siswa atau Guru untuk menyimpan riwayat belajar dan kuis, atau
-                langsung coba modul dan laboratorium virtual secara bebas sebagai tamu.
+                Semua materi teori, simulasi laboratorium virtual, kuis evaluasi, hingga pengelolaan Bank Soal guru
+                dapat diakses bebas tanpa kunci PIN. Login bersifat opsional jika Anda ingin menyimpan riwayat nilai
+                dan data belajar secara permanen ke database.
               </p>
             </div>
 
@@ -192,35 +193,41 @@ export const HomeSection: React.FC = () => {
                   <div className="gw-icon-box bg-cyan">
                     <GraduationCap size={24} />
                   </div>
-                  <span className="gw-badge badge-student">Akses Siswa</span>
+                  <span className="gw-badge badge-student">Mode Belajar Siswa</span>
                 </div>
-                <h3 className="gw-title">Login / Daftar Siswa</h3>
+                <h3 className="gw-title">Eksplorasi Siswa (Bebas)</h3>
                 <p className="gw-desc">
-                  Mengerjakan kuis evaluasi 10 butir soal berstandar HOTS, mencatat perolehan nilai
-                  kelulusan KKM, dan menyimpan lembar jurnal praktikum laboratorium virtual.
+                  Mengerjakan kuis evaluasi 10 butir soal berstandar HOTS, mencoba simulasi laboratorium virtual,
+                  dan mempelajari konsep daya hantar listrik secara mandiri tanpa wajib login.
                 </p>
                 <div className="gw-features">
-                  <span>✓ Simpan nilai kuis evaluasi otomatis</span>
+                  <span>✓ Akses 11 larutan uji & simulasi saklar 9V</span>
+                  <span>✓ Kuis interaktif 10 butir soal HOTS</span>
                   <span>✓ Lembar pengamatan laboratorium virtual</span>
-                  <span>✓ Lencana capaian & riwayat belajar</span>
                 </div>
                 <div className="gw-actions">
                   <button
                     type="button"
-                    id="btn-gw-login-siswa"
+                    id="btn-gw-start-siswa"
                     className="btn btn-primary btn-sm full-width"
-                    onClick={() => openAuthModal('siswa', 'Masuk ke Akun Siswa')}
+                    onClick={() => switchRole('siswa', 'lab')}
                   >
-                    <LogIn size={15} />
-                    <span>Masuk sebagai Siswa</span>
+                    <FlaskConical size={15} />
+                    <span>Mulai Belajar sebagai Siswa</span>
                   </button>
                   <button
                     type="button"
-                    id="btn-gw-register-siswa"
+                    id="btn-gw-login-siswa"
                     className="btn btn-outline btn-xs full-width"
-                    onClick={() => openAuthModal('register')}
+                    onClick={() =>
+                      openAuthModal(
+                        'siswa',
+                        'Masuk Akun untuk Menyimpan Riwayat Belajar & Nilai ke Database'
+                      )
+                    }
                   >
-                    <span>Belum punya akun? Daftar Baru</span>
+                    <LogIn size={13} />
+                    <span>Masuk Akun (Simpan Database)</span>
                   </button>
                 </div>
               </div>
@@ -229,29 +236,43 @@ export const HomeSection: React.FC = () => {
               <div className="gateway-card teacher-card">
                 <div className="gw-card-top">
                   <div className="gw-icon-box bg-purple">
-                    <Lock size={24} />
+                    <FileQuestion size={24} />
                   </div>
-                  <span className="gw-badge badge-teacher">Akses Guru (PIN/Email)</span>
+                  <span className="gw-badge badge-teacher">Mode Tenaga Pendidik</span>
                 </div>
-                <h3 className="gw-title">Login Tenaga Pendidik</h3>
+                <h3 className="gw-title">Kelola Bank Soal & Rekap</h3>
                 <p className="gw-desc">
-                  Khusus Guru Kimia: Mengelola Bank Soal kuis dinamis (tambah/edit/hapus butir soal),
-                  memantau ketuntasan KKM siswa kelas XII, dan mengekspor rekapitulasi nilai ke Excel.
+                  Akses langsung pengelolaan Bank Soal kuis (tambah/edit/hapus butir soal) dan pantau rekapitulasi nilai
+                  evaluasi siswa kelas XII tanpa memerlukan PIN kunci.
                 </p>
                 <div className="gw-features">
-                  <span>✓ Kelola & sunting Bank Soal kuis</span>
-                  <span>✓ Rekapitulasi nilai seluruh siswa</span>
-                  <span>✓ Ekspor spreadsheet & cetak laporan</span>
+                  <span>✓ Sunting Bank Soal & tentukan kunci jawaban</span>
+                  <span>✓ Rekapitulasi nilai & ketuntasan KKM</span>
+                  <span>✓ Ekspor spreadsheet Excel & cetak rapor</span>
                 </div>
                 <div className="gw-actions">
                   <button
                     type="button"
-                    id="btn-gw-login-guru"
+                    id="btn-gw-start-guru"
                     className="btn btn-teacher-portal btn-sm full-width"
-                    onClick={() => openAuthModal('guru', 'Masuk ke Portal Pengelolaan Guru')}
+                    onClick={() => switchRole('guru', 'bank-soal')}
                   >
-                    <Lock size={15} />
-                    <span>Masuk Portal Guru (PIN: 8888)</span>
+                    <FileQuestion size={15} />
+                    <span>Buka Panel Guru (Tanpa Kunci)</span>
+                  </button>
+                  <button
+                    type="button"
+                    id="btn-gw-login-guru"
+                    className="btn btn-outline btn-xs full-width"
+                    onClick={() =>
+                      openAuthModal(
+                        'guru',
+                        'Masuk Akun Guru untuk Sinkronisasi Data ke Database'
+                      )
+                    }
+                  >
+                    <LogIn size={13} />
+                    <span>Masuk Akun Guru (Database)</span>
                   </button>
                 </div>
               </div>
@@ -262,7 +283,7 @@ export const HomeSection: React.FC = () => {
                   <div className="gw-icon-box bg-emerald">
                     <Compass size={24} />
                   </div>
-                  <span className="gw-badge badge-guest">Tanpa Perlu Login</span>
+                  <span className="gw-badge badge-guest">Eksplorasi Cepat</span>
                 </div>
                 <h3 className="gw-title">Explore Mode Tamu</h3>
                 <p className="gw-desc">
@@ -270,9 +291,9 @@ export const HomeSection: React.FC = () => {
                   hantar listrik dan operasikan simulasi alat uji 11 larutan secara bebas tanpa akun.
                 </p>
                 <div className="gw-features">
-                  <span>✓ Akses 5 modul teori Arrhenius</span>
                   <span>✓ Uji simulasi saklar 9V & mikroskop ion</span>
-                  <span>✓ Langsung coba tanpa registrasi</span>
+                  <span>✓ Akses 5 modul teori lengkap Arrhenius</span>
+                  <span>✓ Langsung coba tanpa registrasi/login</span>
                 </div>
                 <div className="gw-actions">
                   <button
@@ -282,7 +303,7 @@ export const HomeSection: React.FC = () => {
                     onClick={() => continueAsGuest('lab')}
                   >
                     <Compass size={15} />
-                    <span>Mulai Explore sebagai Tamu &rarr;</span>
+                    <span>Explore Lab Virtual Sekarang &rarr;</span>
                   </button>
                 </div>
               </div>

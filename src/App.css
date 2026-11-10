@@ -5995,6 +5995,152 @@
   }
 }
 
+/* Database Sync & Save Cards (Optional Login Architecture) */
+.quiz-db-sync-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfeff 100%);
+  border: 1px solid #a7f3d0;
+  border-radius: var(--radius-lg, 16px);
+  padding: 20px 24px;
+  margin: 20px 0 24px;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.08);
+}
+
+.qdbs-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
+}
+
+.qdbs-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #d1fae5;
+  color: #059669;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.qdbs-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.qdbs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #e0f2fe;
+  color: #0284c7;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  width: fit-content;
+  margin-bottom: 2px;
+}
+
+.qdbs-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.qdbs-desc {
+  font-size: 0.85rem;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.qdbs-actions {
+  flex-shrink: 0;
+}
+
+.quiz-db-saved-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  padding: 12px 18px;
+  border-radius: var(--radius-md, 12px);
+  font-size: 0.86rem;
+  margin: 16px 0 20px;
+}
+
+.progress-db-notice {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  font-size: 0.84rem;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.progress-db-notice.synced {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pdb-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pdb-icon {
+  color: #0284c7;
+  flex-shrink: 0;
+}
+
+.btn-link-auth {
+  background: none;
+  border: none;
+  color: #0284c7;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 4px;
+  text-decoration: underline;
+  font-size: 0.84rem;
+}
+
+.btn-link-auth:hover {
+  color: #0369a1;
+}
+
+@media (max-width: 768px) {
+  .quiz-db-sync-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px;
+  }
+  .qdbs-actions {
+    width: 100%;
+  }
+  .qdbs-actions .btn {
+    width: 100%;
+  }
+}
+
 /* ==========================================================================
    PRINT MEDIA QUERY FOR GRADE RECAP
    ========================================================================== */

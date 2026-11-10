@@ -294,8 +294,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               {view === 'forgot'
                 ? 'Atur ulang kata sandi akun pembelajaran kimia Anda'
                 : view === 'register'
-                ? 'Mulai belajar mandiri atau pantau progres siswa kelas XII'
-                : 'Akses modul materi, simulasi lab virtual, dan kuis kimia'}
+                ? 'Daftar akun gratis untuk menyimpan nilai dan sertifikat ke database'
+                : 'Login opsional untuk menyimpan riwayat nilai dan sertifikat ke database'}
             </p>
           </div>
 

@@ -9,6 +9,8 @@ import {
   Sparkles,
   HelpCircle,
   FlaskConical,
+  Database,
+  LogIn,
 } from 'lucide-react';
 import { useProgress } from '../../context/ProgressContext';
 
@@ -23,7 +25,7 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
   userAnswers,
   onRetake,
 }) => {
-  const { setActiveTab } = useProgress();
+  const { setActiveTab, session, openAuthModal } = useProgress();
 
   // Compute scores
   let correctCount = 0;
@@ -109,6 +111,51 @@ export const QuizReview: React.FC<QuizReviewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Optional Database Sync / Persistence Banner */}
+      {!session.isLoggedIn ? (
+        <div className="quiz-db-sync-card">
+          <div className="qdbs-left">
+            <div className="qdbs-icon">
+              <Database size={24} />
+            </div>
+            <div className="qdbs-text">
+              <div className="qdbs-badge">
+                <Sparkles size={13} />
+                <span>Simpan Hasil ke Database Akun (Opsional)</span>
+              </div>
+              <h4 className="qdbs-title">Ingin Menyimpan Nilai Ini ke Database?</h4>
+              <p className="qdbs-desc">
+                Anda telah menyelesaikan kuis dengan skor <strong>{scorePercentage}/100</strong> ({correctCount} Benar).
+                Login bersifat opsional — silakan masuk atau daftar jika ingin skor ini tersimpan permanen di database akun Anda.
+              </p>
+            </div>
+          </div>
+          <div className="qdbs-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={() =>
+                openAuthModal(
+                  'login',
+                  'Masuk ke Akun untuk Menyimpan Skor Kuis Ini ke Database'
+                )
+              }
+            >
+              <LogIn size={15} />
+              <span>Simpan ke Database (Masuk / Daftar)</span>
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="quiz-db-saved-card">
+          <CheckCircle2 size={18} className="text-emerald" />
+          <span>
+            Skor kuis ini ({scorePercentage}/100) telah otomatis tersimpan di database atas nama{' '}
+            <strong>{session.name}</strong> ({session.studentClass || 'XII MIPA 1'}).
+          </span>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="review-actions-bar">

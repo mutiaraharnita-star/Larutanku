@@ -13,6 +13,7 @@ import {
   Sparkles,
   ClipboardList,
   AlertTriangle,
+  Database,
 } from 'lucide-react';
 
 export const ProgressDashboard: React.FC = () => {
@@ -21,6 +22,8 @@ export const ProgressDashboard: React.FC = () => {
     resetAllProgress,
     overallPercentage,
     setActiveTab,
+    session,
+    openAuthModal,
   } = useProgress();
 
   const [showResetModal, setShowResetModal] = useState(false);
@@ -87,6 +90,37 @@ export const ProgressDashboard: React.FC = () => {
           laboratorium virtual, dan hasil evaluasi kuis.
         </p>
       </div>
+
+      {/* Optional Database Sync Notice */}
+      {!session.isLoggedIn ? (
+        <div className="progress-db-notice">
+          <div className="pdb-left">
+            <Database size={17} className="pdb-icon" />
+            <span>
+              Progres belajar Anda tersimpan di peramban lokal. Ingin menyimpan data secara permanen ke database akun?{' '}
+              <button
+                type="button"
+                className="btn-link-auth"
+                onClick={() =>
+                  openAuthModal(
+                    'login',
+                    'Masuk Akun untuk Menyimpan Progres Belajar ke Database'
+                  )
+                }
+              >
+                Masuk / Daftar Akun &rarr;
+              </button>
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="progress-db-notice synced">
+          <CheckCircle2 size={16} className="text-emerald" />
+          <span>
+            Progres tersinkronisasi ke database akun: <strong>{session.name}</strong> ({session.studentClass || 'XII MIPA 1'})
+          </span>
+        </div>
+      )}
 
       {/* Main Overall Progress Banner */}
       <div className="overall-progress-card">
