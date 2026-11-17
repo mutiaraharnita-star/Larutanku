@@ -110,8 +110,8 @@ const STORAGE_KEY_QUESTIONS = 'chemlearn_xii_quiz_questions_v1';
 const STORAGE_KEY_SUBMISSIONS = 'chemlearn_xii_quiz_submissions_v1';
 const STORAGE_KEY_USERS = 'chemlearn_xii_registered_users_v1';
 
-const DEFAULT_GURU_PIN = '8888';
-const DEFAULT_SISWA_PIN = '1234';
+const DEFAULT_GURU_PIN = import.meta.env.VITE_DEFAULT_GURU_PIN || '8888';
+const DEFAULT_SISWA_PIN = import.meta.env.VITE_DEFAULT_SISWA_PIN || '1234';
 
 const defaultUsers: AuthUser[] = [
   {
