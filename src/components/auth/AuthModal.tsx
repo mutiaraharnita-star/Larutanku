@@ -98,18 +98,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Handle Quick Demo Fill
-  const handleQuickFill = (role: 'siswa' | 'guru') => {
-    setErrorMsg('');
-    if (role === 'siswa') {
-      setLoginEmail('siswa@chemlearn.id');
-      setLoginPassword('password123');
-    } else {
-      setLoginEmail('guru@chemlearn.id');
-      setLoginPassword('password123');
-    }
-  };
-
   // Handle Login
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -470,27 +458,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               <GoogleIcon size={18} />
               <span>Masuk dengan Google</span>
             </button>
-
-            {/* Quick Demo Login Chips */}
-            <div className="auth-quick-demo-row">
-              <span className="quick-demo-label">Isi Cepat:</span>
-              <button
-                type="button"
-                className="chip-demo chip-siswa"
-                onClick={() => handleQuickFill('siswa')}
-                title="Isi form dengan akun siswa demo"
-              >
-                🎒 Demo Siswa
-              </button>
-              <button
-                type="button"
-                className="chip-demo chip-guru"
-                onClick={() => handleQuickFill('guru')}
-                title="Isi form dengan akun guru demo"
-              >
-                👨‍🏫 Demo Guru
-              </button>
-            </div>
 
             <div className="auth-divider">
               <span>atau masuk dengan email</span>

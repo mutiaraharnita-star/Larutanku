@@ -46,6 +46,19 @@ export interface MaterialSection {
   };
 }
 
+export interface MaterialReference {
+  id: string;
+  author: string;
+  year: number | string;
+  title: string;
+  source: string;
+  edition?: string;
+  pages?: string;
+  category: 'Buku Teks SMA' | 'Buku Teks Universitas' | 'Modul Kemendikbud' | 'Publikasi Ilmiah';
+  description?: string;
+  link?: string;
+}
+
 export interface MaterialModule {
   id: string;
   number: number;
@@ -55,6 +68,7 @@ export interface MaterialModule {
   estimatedMinutes: number;
   sections: MaterialSection[];
   summary: string[];
+  references?: MaterialReference[];
 }
 
 export interface QuizQuestion {

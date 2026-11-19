@@ -8,14 +8,28 @@ import {
   FlaskConical,
   Sparkles,
   Search,
+  BookMarked,
+  Library,
+  ArrowLeft,
+  GraduationCap,
 } from 'lucide-react';
-import { LEARNING_MODULES } from '../../data/materials';
+import { LEARNING_MODULES, COMPREHENSIVE_REFERENCES } from '../../data/materials';
 import { useProgress } from '../../context/ProgressContext';
 
 export const MaterialsSection: React.FC = () => {
   const { progress, toggleModuleCompleted, setActiveTab } = useProgress();
   const [selectedModuleId, setSelectedModuleId] = useState<string>(LEARNING_MODULES[0].id);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [showAllReferences, setShowAllReferences] = useState<boolean>(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>('Semua');
+
+  const categories = [
+    'Semua',
+    'Buku Teks SMA',
+    'Buku Teks Universitas',
+    'Modul Kemendikbud',
+    'Publikasi Ilmiah',
+  ];
 
   const currentModuleIndex = LEARNING_MODULES.findIndex((m) => m.id === selectedModuleId);
   const currentModule = LEARNING_MODULES[currentModuleIndex] || LEARNING_MODULES[0];
@@ -31,12 +45,42 @@ export const MaterialsSection: React.FC = () => {
         s.title.toLowerCase().includes(q) ||
         s.content.some((c) => c.toLowerCase().includes(q))
     );
-    return titleMatch || contentMatch;
+    const refMatch = mod.references?.some(
+      (r) =>
+        r.title.toLowerCase().includes(q) ||
+        r.author.toLowerCase().includes(q) ||
+        r.source.toLowerCase().includes(q)
+    );
+    return titleMatch || contentMatch || refMatch;
   });
+
+  const filteredReferences = COMPREHENSIVE_REFERENCES.filter((ref) => {
+    const matchesCategory =
+      selectedCategory === 'Semua' || ref.category === selectedCategory;
+    if (!matchesCategory) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      ref.title.toLowerCase().includes(q) ||
+      ref.author.toLowerCase().includes(q) ||
+      ref.source.toLowerCase().includes(q) ||
+      (ref.description && ref.description.toLowerCase().includes(q))
+    );
+  });
+
+  const getModulesReferencing = (refId: string) => {
+    const matched = LEARNING_MODULES.filter((m) =>
+      m.references?.some((r) => r.id === refId)
+    ).map((m) => `Bab ${m.number}`);
+    return matched.length > 0
+      ? `Rujukan materi: ${matched.join(', ')}`
+      : 'Rujukan umum kimia larutan';
+  };
 
   const handleNextModule = () => {
     if (currentModuleIndex < LEARNING_MODULES.length - 1) {
       setSelectedModuleId(LEARNING_MODULES[currentModuleIndex + 1].id);
+      setShowAllReferences(false);
       window.scrollTo({ top: 120, behavior: 'smooth' });
     }
   };
@@ -44,6 +88,7 @@ export const MaterialsSection: React.FC = () => {
   const handlePrevModule = () => {
     if (currentModuleIndex > 0) {
       setSelectedModuleId(LEARNING_MODULES[currentModuleIndex - 1].id);
+      setShowAllReferences(false);
       window.scrollTo({ top: 120, behavior: 'smooth' });
     }
   };
@@ -121,11 +166,12 @@ export const MaterialsSection: React.FC = () => {
                   key={mod.id}
                   id={`module-nav-btn-${mod.id}`}
                   type="button"
-                  className={`module-nav-item ${isActive ? 'active' : ''} ${
+                  className={`module-nav-item ${isActive && !showAllReferences ? 'active' : ''} ${
                     isCompleted ? 'completed' : ''
                   }`}
                   onClick={() => {
                     setSelectedModuleId(mod.id);
+                    setShowAllReferences(false);
                     window.scrollTo({ top: 120, behavior: 'smooth' });
                   }}
                 >
@@ -142,6 +188,29 @@ export const MaterialsSection: React.FC = () => {
                 </button>
               );
             })}
+
+            {/* Sidebar Link to Full References */}
+            <div className="sidebar-ref-divider" />
+            <button
+              type="button"
+              id="sidebar-goto-references"
+              className={`module-nav-item reference-nav-item ${showAllReferences ? 'active' : ''}`}
+              onClick={() => {
+                setShowAllReferences(true);
+                window.scrollTo({ top: 120, behavior: 'smooth' });
+              }}
+            >
+              <div className="mod-nav-num ref-badge">
+                <BookMarked size={16} />
+              </div>
+              <div className="mod-nav-details">
+                <span className="mod-nav-title">Daftar Rujukan Lengkap</span>
+                <span className="mod-nav-meta">
+                  <Library size={12} /> {COMPREHENSIVE_REFERENCES.length} Sumber Standar
+                </span>
+              </div>
+              <ChevronRight size={16} className="mod-nav-arrow" />
+            </button>
           </div>
 
           {/* Quick Help Card */}
@@ -163,9 +232,94 @@ export const MaterialsSection: React.FC = () => {
           </div>
         </aside>
 
-        {/* CONTENT AREA: ACTIVE MODULE */}
+        {/* CONTENT AREA: ACTIVE MODULE OR ALL REFERENCES */}
         <main className="materials-article-area">
-          <article className="module-article-card">
+          {showAllReferences ? (
+            <div className="comprehensive-references-view" id="all-references-section">
+              <div className="all-refs-card">
+                <div className="all-refs-header">
+                  <button
+                    type="button"
+                    className="all-refs-back-btn"
+                    onClick={() => {
+                      setShowAllReferences(false);
+                      window.scrollTo({ top: 120, behavior: 'smooth' });
+                    }}
+                  >
+                    <ArrowLeft size={16} />
+                    <span>Kembali ke Bab {currentModule.number}: {currentModule.title}</span>
+                  </button>
+
+                  <h2 className="all-refs-title">
+                    <BookMarked size={28} className="text-primary" />
+                    <span>Daftar Rujukan & Bibliografi Materi Kimia</span>
+                  </h2>
+                  <p className="all-refs-desc">
+                    Seluruh materi pembelajaran Larutan Elektrolit & Nonelektrolit pada platform ini
+                    disusun dan divalidasi berdasarkan standar Kurikulum Kimia SMA (KD 3.8 & KD 4.8),
+                    modul resmi Kemendikbudristek, serta buku teks kimia universitas terkemuka dunia.
+                  </p>
+
+                  {/* Filter Categories */}
+                  <div className="all-refs-categories">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        className={`ref-cat-btn ${selectedCategory === cat ? 'active' : ''}`}
+                        onClick={() => setSelectedCategory(cat)}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* References List */}
+                <div className="all-refs-grid">
+                  {filteredReferences.map((ref) => {
+                    const badgeClass = `badge-${ref.category.toLowerCase().replace(/\s+/g, '-')}`;
+                    return (
+                      <div key={ref.id} className="ref-card-full">
+                        <div className="ref-full-top">
+                          <span className={`ref-badge-pill ${badgeClass}`}>{ref.category}</span>
+                          <span className="ref-full-year">Tahun {ref.year}</span>
+                        </div>
+                        <div className="ref-full-citation">
+                          <strong>{ref.author}</strong> ({ref.year}). <em>{ref.title}</em>. {ref.source}
+                          {ref.edition ? `, ${ref.edition}` : ''}
+                          {ref.pages ? `. ${ref.pages}` : ''}.
+                        </div>
+                        <div className="ref-full-details">
+                          <p style={{ margin: 0 }}>{ref.description}</p>
+                          <div className="ref-full-modules-tag">
+                            <GraduationCap size={14} />
+                            <span>{getModulesReferencing(ref.id)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Back to Reading Action */}
+                <div style={{ marginTop: '32px', textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setShowAllReferences(false);
+                      window.scrollTo({ top: 120, behavior: 'smooth' });
+                    }}
+                  >
+                    <span>Lanjutkan Membaca Bab {currentModule.number}</span>
+                    <ChevronRight size={18} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <article className="module-article-card">
             {/* Article Header */}
             <div className="article-header">
               <div className="article-meta-row">
@@ -279,6 +433,51 @@ export const MaterialsSection: React.FC = () => {
                   ))}
                 </ul>
               </div>
+
+              {/* Module Specific References Card */}
+              {currentModule.references && currentModule.references.length > 0 && (
+                <div className="module-references-card" id={`module-references-${currentModule.id}`}>
+                  <div className="module-references-header">
+                    <div className="ref-header-left">
+                      <BookMarked size={20} className="text-teal" />
+                      <h4 className="ref-card-title">Daftar Rujukan Bab {currentModule.number}</h4>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-view-all-refs"
+                      onClick={() => {
+                        setShowAllReferences(true);
+                        window.scrollTo({ top: 120, behavior: 'smooth' });
+                      }}
+                      title="Buka seluruh pustaka rujukan pembelajaran kimia"
+                    >
+                      <Library size={14} />
+                      <span>Lihat Seluruh Rujukan ({COMPREHENSIVE_REFERENCES.length})</span>
+                    </button>
+                  </div>
+                  <p className="ref-card-desc">
+                    Konsep pada Bab {currentModule.number} ini disusun merujuk pada literatur dan sumber pustaka ilmiah terakreditasi:
+                  </p>
+                  <ul className="module-ref-list">
+                    {currentModule.references.map((ref) => {
+                      const badgeClass = `badge-${ref.category.toLowerCase().replace(/\s+/g, '-')}`;
+                      return (
+                        <li key={ref.id} className="module-ref-item">
+                          <div className="ref-item-badge-row">
+                            <span className={`ref-badge-pill ${badgeClass}`}>{ref.category}</span>
+                            {ref.pages && <span className="ref-pages-tag">{ref.pages}</span>}
+                          </div>
+                          <div className="ref-citation">
+                            <strong>{ref.author}</strong> ({ref.year}). <em>{ref.title}</em>. {ref.source}
+                            {ref.edition ? `, ${ref.edition}` : ''}.
+                          </div>
+                          {ref.description && <p className="ref-item-desc">{ref.description}</p>}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              )}
             </div>
 
             {/* Bottom Nav / Next Steps */}
@@ -316,6 +515,7 @@ export const MaterialsSection: React.FC = () => {
               </button>
             </div>
           </article>
+          )}
         </main>
       </div>
     </div>

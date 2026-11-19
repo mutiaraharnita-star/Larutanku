@@ -5,14 +5,9 @@ import { useProgress, type ActiveTab } from '../context/ProgressContext';
 const CURRENT_YEAR = 2026;
 
 export const Footer: React.FC = () => {
-  const { setActiveTab, session, switchRole } = useProgress();
+  const { setActiveTab } = useProgress();
 
   const handleNav = (tab: ActiveTab) => {
-    if (tab === 'bank-soal' || tab === 'rekap-nilai') {
-      if (session.role !== 'guru') {
-        switchRole('guru');
-      }
-    }
     setActiveTab(tab);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -85,24 +80,6 @@ export const Footer: React.FC = () => {
                   onClick={() => handleNav('progres')}
                 >
                   Laporan Progres Belajar
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  id="footer-link-bank-soal"
-                  onClick={() => handleNav('bank-soal')}
-                >
-                  Bank Soal (Akses Guru 🔒)
-                </button>
-              </li>
-              <li>
-                <button
-                  type="button"
-                  id="footer-link-rekap-nilai"
-                  onClick={() => handleNav('rekap-nilai')}
-                >
-                  Rekap Nilai Siswa (Akses Guru 🔒)
                 </button>
               </li>
             </ul>

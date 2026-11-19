@@ -15,7 +15,6 @@ import {
   ArrowRightLeft,
   LogOut,
   LogIn,
-  Compass,
 } from 'lucide-react';
 import { useProgress, type ActiveTab } from '../context/ProgressContext';
 
@@ -126,7 +125,7 @@ export const Navbar: React.FC = () => {
           })}
         </nav>
 
-        {/* Navbar Right: Role Pill, Switcher, Progress, Mobile Toggle */}
+        {/* Navbar Right: Role Pill / Login, Progress, Mobile Toggle */}
         <div className="navbar-right">
           {/* Progress Pill (shown for students) */}
           {!isGuru && (
@@ -145,22 +144,6 @@ export const Navbar: React.FC = () => {
             </div>
           )}
 
-          {/* Quick Role Switcher (Always accessible without PIN) */}
-          <button
-            type="button"
-            id="quick-switch-role-btn"
-            className={`quick-switch-btn ${isGuru ? 'switch-to-siswa' : 'switch-to-guru'}`}
-            onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
-            title={
-              isGuru
-                ? 'Beralih ke Mode Siswa (Tanpa Kunci/PIN)'
-                : 'Beralih ke Mode Guru (Tanpa Kunci/PIN)'
-            }
-          >
-            {isGuru ? <User size={14} /> : <GraduationCap size={14} />}
-            <span>{isGuru ? 'Mode Siswa' : 'Mode Guru'}</span>
-          </button>
-
           {/* Role Status Pill & Dropdown / Login Button */}
           {!session.isLoggedIn ? (
             <div className="nav-auth-wrapper">
@@ -168,16 +151,11 @@ export const Navbar: React.FC = () => {
                 type="button"
                 id="btn-nav-login"
                 className="btn btn-primary btn-sm btn-nav-login"
-                onClick={() =>
-                  openAuthModal(
-                    'login',
-                    'Masuk ke Akun untuk Menyimpan Riwayat Belajar & Nilai ke Database'
-                  )
-                }
-                title="Login opsional — untuk menyimpan riwayat nilai ke database"
+                onClick={() => openAuthModal('login')}
+                title="Masuk ke Akun"
               >
                 <LogIn size={15} />
-                <span>Masuk (Simpan Database)</span>
+                <span>Masuk</span>
               </button>
             </div>
           ) : (
@@ -312,35 +290,19 @@ export const Navbar: React.FC = () => {
       {mobileMenuOpen && (
         <div className="mobile-drawer" id="mobile-nav-drawer">
           <div className="mobile-drawer-inner">
-            {/* Mobile Role Banner */}
+            {/* Mobile Auth Banner */}
             {!session.isLoggedIn ? (
               <div className="mobile-guest-card">
-                <div className="mobile-guest-hint">
-                  <Compass size={14} />
-                  <span>{isGuru ? 'Mode Guru (Bebas Akses)' : 'Mode Siswa (Bebas Akses)'}</span>
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline full-width"
-                  style={{ marginBottom: '8px' }}
-                  onClick={() => handleRequestSwitchRole(isGuru ? 'siswa' : 'guru')}
-                >
-                  <ArrowRightLeft size={13} />
-                  <span>{isGuru ? 'Ganti ke Mode Siswa' : 'Ganti ke Mode Guru'}</span>
-                </button>
                 <button
                   type="button"
                   className="btn btn-primary full-width"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    openAuthModal(
-                      'login',
-                      'Masuk ke Akun untuk Menyimpan Riwayat Belajar ke Database'
-                    );
+                    openAuthModal('login');
                   }}
                 >
                   <LogIn size={16} />
-                  <span>Masuk Akun (Simpan Database)</span>
+                  <span>Masuk</span>
                 </button>
               </div>
             ) : (

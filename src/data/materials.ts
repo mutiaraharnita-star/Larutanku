@@ -1,4 +1,101 @@
-import type { MaterialModule } from '../types/chemistry';
+import type { MaterialModule, MaterialReference } from '../types/chemistry';
+
+export const COMPREHENSIVE_REFERENCES: MaterialReference[] = [
+  {
+    id: 'ref-1',
+    author: 'Sudarmo, Unggul',
+    year: 2016,
+    title: 'Kimia untuk SMA/MA Kelas X & XII Kelompok Peminatan Matematika dan Ilmu Alam',
+    source: 'Penerbit Erlangga, Jakarta',
+    edition: 'Kurikulum 2013 Edisi Revisi',
+    pages: 'Hal. 182–215',
+    category: 'Buku Teks SMA',
+    description:
+      'Membahas konsep larutan elektrolit dan nonelektrolit, percobaan daya hantar listrik, serta derajat ionisasi senyawa ionik dan kovalen polar.',
+  },
+  {
+    id: 'ref-2',
+    author: 'Watoni, A. Haris, Kurniawati, D., & Juniache, M.',
+    year: 2016,
+    title: 'Kimia untuk Siswa SMA/MA Kelas X & XII Kelompok Peminatan Matematika dan Ilmu-Ilmu Alam',
+    source: 'Yrama Widya, Bandung',
+    pages: 'Hal. 201–230',
+    category: 'Buku Teks SMA',
+    description:
+      'Penjelasan mendalam mengenai pembentukan ion dalam air, klasifikasi elektrolit, dan implementasi larutan elektrolit dalam cairan tubuh serta industri.',
+  },
+  {
+    id: 'ref-3',
+    author: 'Direktorat SMA, Ditjen PAUD, Dikdas dan Dikmen',
+    year: 2020,
+    title: 'Modul Pembelajaran SMA Kimia: Larutan Elektrolit dan Nonelektrolit (KD 3.8 & KD 4.8)',
+    source: 'Kementerian Pendidikan dan Kebudayaan Republik Indonesia, Jakarta',
+    category: 'Modul Kemendikbud',
+    description:
+      'Panduan kurikulum resmi Kemendikbud yang memuat indikator pencapaian kompetensi, lembar kerja eksperimen laboratorium uji larutan, dan latihan soal terstandar.',
+  },
+  {
+    id: 'ref-4',
+    author: 'Chang, Raymond, & Goldsby, Kenneth A.',
+    year: 2016,
+    title: 'Chemistry (12th Edition)',
+    source: 'McGraw-Hill Education, New York',
+    edition: '12th International Edition',
+    pages: 'Bab 4: Reactions in Aqueous Solutions, Hal. 120–145',
+    category: 'Buku Teks Universitas',
+    description:
+      'Referensi standar kimia dasar mengenai sifat umum larutan elektrolit, disosiasi ionik, kesetimbangan larutan, dan perbedaan elektrolit kuat, lemah, serta nonelektrolit.',
+  },
+  {
+    id: 'ref-5',
+    author:
+      'Brown, Theodore L., LeMay, H. Eugene, Bursten, Bruce E., Murphy, Catherine J., Woodward, Patrick M., & Stoltzfus, Matthew W.',
+    year: 2018,
+    title: 'Chemistry: The Central Science (14th Edition)',
+    source: 'Pearson Education, Boston',
+    edition: '14th Edition',
+    pages: 'Bab 4: Aqueous Reactions and Solution Stoichiometry, Hal. 118–156',
+    category: 'Buku Teks Universitas',
+    description:
+      'Visualisasi tingkat submikroskopik interaksi molekul pelarut air (dipol) dengan kation-anion, serta mekanisme aliran muatan dalam elektrolit.',
+  },
+  {
+    id: 'ref-6',
+    author:
+      'Petrucci, Ralph H., Herring, F. Geoffrey, Madura, Jeffry D., & Bissonnette, Carey',
+    year: 2017,
+    title: 'General Chemistry: Principles and Modern Applications (11th Edition)',
+    source: 'Pearson Canada, Toronto',
+    edition: '11th Edition',
+    pages: 'Bab 5 & Bab 13: Solutions and Their Physical Properties',
+    category: 'Buku Teks Universitas',
+    description:
+      'Dasar termodinamika ionisasi, derajat disosiasi (α), dan daya hantar molar larutan elektrolit kuat serta lemah.',
+  },
+  {
+    id: 'ref-7',
+    author: 'Silberberg, Martin S., & Amateis, Patricia',
+    year: 2018,
+    title: 'Chemistry: The Molecular Nature of Matter and Change (8th Edition)',
+    source: 'McGraw-Hill Education, New York',
+    edition: '8th Edition',
+    pages: 'Bab 4: The Major Classes of Chemical Reactions, Hal. 138–172',
+    category: 'Buku Teks Universitas',
+    description:
+      'Kajian model molekuler ion terhidrasi, pelarutan senyawa ion versus senyawa kovalen polar, dan mekanisme elektrolit dalam aki kendaraan.',
+  },
+  {
+    id: 'ref-8',
+    author: 'Arrhenius, Svante August',
+    year: 1887,
+    title:
+      'Über die Dissociation der im Wasser gelösten Stoffe (On the Dissociation of Substances Dissolved in Water)',
+    source: 'Zeitschrift für physikalische Chemie, 1, 631–648',
+    category: 'Publikasi Ilmiah',
+    description:
+      'Karya ilmiah klasik peraih Hadiah Nobel Kimia 1903 yang memformulasikan bahwa zat elektrolit terurai secara spontan menjadi ion-ion bebas di dalam medium air.',
+  },
+];
 
 export const LEARNING_MODULES: MaterialModule[] = [
   {
@@ -47,6 +144,11 @@ export const LEARNING_MODULES: MaterialModule[] = [
       'Larutan elektrolit dapat menghantarkan arus listrik karena mengandung ion-ion yang bergerak bebas.',
       'Larutan nonelektrolit tidak dapat menghantarkan arus listrik karena zat terlarut tetap berupa molekul netral.',
       'Indikator keberadaan arus listrik dalam uji laboratorium adalah nyala lampu dan munculnya gelembung gas pada elektroda.',
+    ],
+    references: [
+      COMPREHENSIVE_REFERENCES[0],
+      COMPREHENSIVE_REFERENCES[2],
+      COMPREHENSIVE_REFERENCES[4],
     ],
   },
   {
@@ -104,6 +206,11 @@ export const LEARNING_MODULES: MaterialModule[] = [
       'Elektrolit lemah terionisasi sebagian (0 < α < 1), lampu redup dan sedikit gelembung.',
       'Nonelektrolit tidak terionisasi sama sekali (α = 0), lampu padam dan tanpa gelembung gas.',
     ],
+    references: [
+      COMPREHENSIVE_REFERENCES[0],
+      COMPREHENSIVE_REFERENCES[3],
+      COMPREHENSIVE_REFERENCES[5],
+    ],
   },
   {
     id: 'modul-3',
@@ -146,6 +253,11 @@ export const LEARNING_MODULES: MaterialModule[] = [
       'Svante Arrhenius membuktikan bahwa elektrolit terurai menjadi kation (+) dan anion (-).',
       'Arus listrik dalam larutan dibawa oleh mobilitas gerak ion-ion bebas, bukan elektron bebas.',
       'Gelembung gas di elektroda timbul akibat reaksi redoks (serah terima elektron) pada permukaan elektroda.',
+    ],
+    references: [
+      COMPREHENSIVE_REFERENCES[7],
+      COMPREHENSIVE_REFERENCES[4],
+      COMPREHENSIVE_REFERENCES[6],
     ],
   },
   {
@@ -194,6 +306,11 @@ export const LEARNING_MODULES: MaterialModule[] = [
       'Senyawa kovalen murni tidak menghantar listrik. Senyawa kovalen polar hanya menghantar listrik ketika dilarutkan dalam air.',
       'Senyawa kovalen nonpolar tidak pernah menghantarkan listrik dalam kondisi apapun.',
     ],
+    references: [
+      COMPREHENSIVE_REFERENCES[0],
+      COMPREHENSIVE_REFERENCES[1],
+      COMPREHENSIVE_REFERENCES[4],
+    ],
   },
   {
     id: 'modul-5',
@@ -229,6 +346,11 @@ export const LEARNING_MODULES: MaterialModule[] = [
       'Ion Na⁺, K⁺, dan Ca²⁺ sangat penting untuk kerja saraf, jantung, dan otot manusia.',
       'Oralit mengembalikan keseimbangan ion tubuh yang hilang saat dehidrasi.',
       'Aki kendaraan bermotor dan industri pelapisan logam sangat bergantung pada larutan elektrolit.',
+    ],
+    references: [
+      COMPREHENSIVE_REFERENCES[1],
+      COMPREHENSIVE_REFERENCES[2],
+      COMPREHENSIVE_REFERENCES[6],
     ],
   },
 ];
