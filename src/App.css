@@ -3658,6 +3658,22 @@
   color: #0284c7;
 }
 
+.badge-firebase-tag {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  border-radius: var(--radius-full);
+  padding: 1px 7px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 6px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 .auth-card-title {
   font-size: 1.35rem;
   font-weight: 800;

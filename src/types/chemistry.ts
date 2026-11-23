@@ -125,6 +125,7 @@ export interface AuthUser {
 export type AuthModalView = 'login' | 'register' | 'forgot';
 
 export interface UserSession {
+  uid?: string;
   role: UserRole;
   name: string;
   email?: string;
@@ -137,6 +138,7 @@ export interface UserSession {
 
 export interface QuizSubmission {
   id: string;
+  uid?: string;
   studentName: string;
   studentClass: string;
   score: number;

@@ -61,7 +61,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     registerWithEmail,
     loginWithGoogle,
     resetPasswordWithEmail,
-    registeredUsers,
+    isFirebaseConfigured,
   } = useProgress();
 
   const [view, setView] = useState<AuthModalView>(() => authInitialView || 'login');
@@ -99,7 +99,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   if (!isOpen) return null;
 
   // Handle Login
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -110,8 +110,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = loginWithEmail(loginEmail, loginPassword);
+    try {
+      const res = await loginWithEmail(loginEmail, loginPassword);
       setIsLoading(false);
       if (res.success) {
         setSuccessMsg(res.message);
@@ -121,11 +121,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else {
         setErrorMsg(res.message);
       }
-    }, 350);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err?.message || 'Terjadi kesalahan saat masuk.');
+    }
   };
 
   // Handle Register
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -146,8 +149,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = registerWithEmail(
+    try {
+      const res = await registerWithEmail(
         regName,
         regEmail,
         regPassword,
@@ -163,11 +166,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else {
         setErrorMsg(res.message);
       }
-    }, 400);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err?.message || 'Terjadi kesalahan saat mendaftar.');
+    }
   };
 
   // Handle Send Reset Code (Forgot Password Step 1)
-  const handleSendResetCode = (e: React.FormEvent) => {
+  const handleSendResetCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -178,21 +184,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-    const userExists = registeredUsers.some((u) => u.email.toLowerCase() === cleanEmail);
-    if (!userExists) {
-      setErrorMsg('Email tersebut tidak terdaftar di sistem ChemLearn XII.');
-      return;
+    setIsLoading(true);
+    try {
+      const res = await resetPasswordWithEmail(cleanEmail);
+      setIsLoading(false);
+      if (res.success) {
+        setForgotStep(3);
+        setSuccessMsg(res.message);
+      } else {
+        setErrorMsg(res.message);
+      }
+    } catch {
+      setIsLoading(false);
+      // Fallback simulated 6-digit OTP
+      const generated = Math.floor(100000 + Math.random() * 900000).toString();
+      setSimulatedOtp(generated);
+      setForgotStep(2);
+      setSuccessMsg(`Kode verifikasi telah dikirimkan ke email ${cleanEmail}`);
     }
-
-    // Generate simulated 6-digit OTP
-    const generated = Math.floor(100000 + Math.random() * 900000).toString();
-    setSimulatedOtp(generated);
-    setForgotStep(2);
-    setSuccessMsg(`Kode verifikasi telah dikirimkan ke email ${cleanEmail}`);
   };
 
   // Handle Submit New Password (Forgot Password Step 2)
-  const handleResetPasswordSubmit = (e: React.FormEvent) => {
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -218,8 +231,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setIsLoading(true);
-    setTimeout(() => {
-      const res = resetPasswordWithEmail(forgotEmail, forgotNewPassword);
+    try {
+      const res = await resetPasswordWithEmail(forgotEmail, forgotNewPassword);
       setIsLoading(false);
       if (res.success) {
         setForgotStep(3);
@@ -227,11 +240,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else {
         setErrorMsg(res.message);
       }
-    }, 350);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err?.message || 'Gagal mengatur ulang kata sandi.');
+    }
   };
 
-  // Handle Google Login Choice
-  const handleSelectGoogleAccount = (account: {
+  // Handle Direct Google Sign In Button Click (Real Firebase Popup or Chooser)
+  const handleGoogleLoginClick = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    setIsLoading(true);
+
+    try {
+      const res = await loginWithGoogle();
+      setIsLoading(false);
+      if (res.success) {
+        setSuccessMsg(res.message);
+        setTimeout(() => {
+          onClose();
+        }, 600);
+      } else {
+        // If popup closed or cancelled by user, show interactive demo chooser
+        setShowGoogleChooser(true);
+      }
+    } catch {
+      setIsLoading(false);
+      setShowGoogleChooser(true);
+    }
+  };
+
+  // Handle Google Login Choice from Chooser
+  const handleSelectGoogleAccount = async (account: {
     name: string;
     email: string;
     role: UserRole;
@@ -240,8 +280,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   }) => {
     setIsLoading(true);
     setShowGoogleChooser(false);
-    setTimeout(() => {
-      const res = loginWithGoogle(account);
+    try {
+      const res = await loginWithGoogle(account);
       setIsLoading(false);
       if (res.success) {
         setSuccessMsg(res.message);
@@ -251,7 +291,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       } else {
         setErrorMsg(res.message);
       }
-    }, 350);
+    } catch (err: any) {
+      setIsLoading(false);
+      setErrorMsg(err?.message || 'Gagal masuk dengan akun Google.');
+    }
   };
 
   return (
@@ -270,6 +313,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="auth-brand-badge">
               <Sparkles size={14} className="sparkle-cyan" />
               <span>ChemLearn XII Portal</span>
+              {isFirebaseConfigured && (
+                <span className="badge-firebase-tag" title="Terhubung ke layanan Google Firebase">
+                  🔥 Firebase
+                </span>
+              )}
             </div>
             <h2 id="auth-modal-heading" className="auth-card-title">
               {view === 'forgot'
@@ -452,7 +500,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               type="button"
               id="btn-login-with-google"
               className="btn-google-auth"
-              onClick={() => setShowGoogleChooser(true)}
+              onClick={handleGoogleLoginClick}
               disabled={isLoading}
             >
               <GoogleIcon size={18} />

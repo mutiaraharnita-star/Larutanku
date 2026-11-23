@@ -11,6 +11,29 @@ import type {
 } from '../types/chemistry';
 import { LEARNING_MODULES } from '../data/materials';
 import { QUIZ_QUESTIONS } from '../data/quizQuestions';
+import {
+  auth,
+  db,
+  googleProvider,
+  isFirebaseConfigured,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  sendPasswordResetEmail,
+  updateProfile,
+  onAuthStateChanged,
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  addDoc,
+  deleteDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+} from '../lib/firebase';
 
 export type ActiveTab =
   | 'beranda'
@@ -35,6 +58,10 @@ interface ProgressContextType {
   resetAllProgress: () => void;
   overallPercentage: number;
 
+  // Firebase status
+  isFirebaseConfigured: boolean;
+  isFirebaseConnected: boolean;
+
   // Session & Auth
   session: UserSession;
   guruPin: string;
@@ -52,25 +79,25 @@ interface ProgressContextType {
   loginWithEmail: (
     email: string,
     password: string
-  ) => { success: boolean; message: string; user?: AuthUser };
+  ) => Promise<{ success: boolean; message: string; user?: AuthUser }>;
   registerWithEmail: (
     name: string,
     email: string,
     password: string,
     role: UserRole,
     studentClass?: string
-  ) => { success: boolean; message: string; user?: AuthUser };
+  ) => Promise<{ success: boolean; message: string; user?: AuthUser }>;
   loginWithGoogle: (account?: {
     name: string;
     email: string;
     role: UserRole;
     avatar?: string;
     studentClass?: string;
-  }) => { success: boolean; message: string; user?: AuthUser };
+  }) => Promise<{ success: boolean; message: string; user?: AuthUser }>;
   resetPasswordWithEmail: (
     email: string,
-    newPassword: string
-  ) => { success: boolean; message: string };
+    newPassword?: string
+  ) => Promise<{ success: boolean; message: string }>;
   registeredUsers: AuthUser[];
   continueAsGuest: (targetTab?: ActiveTab) => void;
   switchRole: (targetRole: UserRole, targetTab?: ActiveTab) => void;
@@ -310,6 +337,9 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return defaultSubmissions;
   });
 
+  // Firebase Connection State
+  const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
+
   // Sync to local storage
   useEffect(() => {
     try {
@@ -318,6 +348,93 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.warn('Failed to save progress to localStorage:', e);
     }
   }, [progress]);
+
+  // Real-time synchronization with Firebase Auth & Firestore
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+
+    let unsubscribeAuth = () => {};
+    if (auth) {
+      unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser: any) => {
+        if (firebaseUser) {
+          setIsFirebaseConnected(true);
+          let role: UserRole = 'siswa';
+          let studentClass = 'XII MIPA 1';
+          let name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Pengguna';
+
+          if (db) {
+            try {
+              const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+              if (userDoc.exists()) {
+                const data = userDoc.data();
+                role = (data.role as UserRole) || role;
+                studentClass = data.studentClass || studentClass;
+                name = data.name || name;
+              }
+            } catch (err) {
+              console.warn('Failed to fetch user doc from Firestore:', err);
+            }
+          }
+
+          setSession({
+            uid: firebaseUser.uid,
+            role,
+            name,
+            email: firebaseUser.email || undefined,
+            studentClass: role === 'siswa' ? studentClass : undefined,
+            avatar: role === 'guru' ? '👨‍🏫' : '🎒',
+            isLoggedIn: true,
+            isGuest: false,
+            authProvider:
+              firebaseUser.providerData[0]?.providerId === 'google.com'
+                ? 'google'
+                : 'email',
+          });
+        }
+      });
+    }
+
+    // Firestore Quiz Submissions real-time listener
+    let unsubscribeSubs = () => {};
+    if (db) {
+      try {
+        const q = query(collection(db, 'quiz_submissions'), orderBy('timestamp', 'desc'));
+        unsubscribeSubs = onSnapshot(
+          q,
+          (snapshot: any) => {
+            setIsFirebaseConnected(true);
+            if (!snapshot.empty) {
+              const remoteSubs: QuizSubmission[] = snapshot.docs.map((d: any) => {
+                const data = d.data();
+                return {
+                  id: d.id,
+                  uid: data.uid,
+                  studentName: data.studentName || 'Siswa',
+                  studentClass: data.studentClass || 'XII MIPA 1',
+                  score: data.score || 0,
+                  totalQuestions: data.totalQuestions || 10,
+                  percentage: data.percentage || 0,
+                  submittedAt: data.submittedAt || '',
+                  status: data.status || 'Lulus',
+                };
+              });
+              setQuizSubmissions(remoteSubs);
+            }
+          },
+          (err: any) => {
+            console.warn('Firestore quiz_submissions onSnapshot error:', err);
+          }
+        );
+      } catch (err) {
+        console.warn('Could not setup quiz_submissions listener:', err);
+      }
+    }
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeSubs();
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -394,61 +511,130 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setAuthReason('');
   };
 
-  // Login with Email & Password
-  const loginWithEmail = (
+  // Login with Email & Password (Firebase Auth + Fallback)
+  const loginWithEmail = async (
     email: string,
     password: string
-  ): { success: boolean; message: string; user?: AuthUser } => {
+  ): Promise<{ success: boolean; message: string; user?: AuthUser }> => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanPass = password.trim();
 
-    const user = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+    // 1. Check local demo accounts first for quick offline/test login
+    const demoUser = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+    if (demoUser && demoUser.password === cleanPass) {
+      setSession({
+        role: demoUser.role,
+        name: demoUser.name,
+        email: demoUser.email,
+        studentClass: demoUser.studentClass,
+        avatar: demoUser.avatar,
+        isLoggedIn: true,
+        isGuest: false,
+        authProvider: demoUser.authProvider,
+      });
 
-    if (!user) {
+      closeAuthModal();
+
+      if (demoUser.role === 'guru' && (activeTab === 'kuis' || activeTab === 'progres')) {
+        setActiveTab('bank-soal');
+      }
+
       return {
-        success: false,
-        message: 'Email tidak ditemukan. Silakan periksa kembali atau daftar akun baru.',
+        success: true,
+        message: `Selamat datang kembali, ${demoUser.name}! (Akun Demo)`,
+        user: demoUser,
       };
     }
 
-    if (user.password && user.password !== cleanPass) {
-      return {
-        success: false,
-        message: 'Kata sandi tidak sesuai! Silakan coba lagi atau gunakan menu Lupa Password.',
-      };
-    }
+    // 2. Authenticate with Firebase Authentication
+    if (isFirebaseConfigured && auth) {
+      try {
+        const userCred = await signInWithEmailAndPassword(auth, cleanEmail, cleanPass);
+        const firebaseUser = userCred.user;
+        let role: UserRole = 'siswa';
+        let name = firebaseUser.displayName || cleanEmail.split('@')[0];
+        let studentClass = 'XII MIPA 1';
 
-    setSession({
-      role: user.role,
-      name: user.name,
-      email: user.email,
-      studentClass: user.studentClass,
-      avatar: user.avatar,
-      isLoggedIn: true,
-      authProvider: user.authProvider,
-    });
+        if (db) {
+          try {
+            const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              role = (data.role as UserRole) || role;
+              name = data.name || name;
+              studentClass = data.studentClass || studentClass;
+            }
+          } catch (err) {
+            console.warn('Could not read user profile from Firestore:', err);
+          }
+        }
 
-    closeAuthModal();
+        const loggedUser: AuthUser = {
+          id: firebaseUser.uid,
+          name,
+          email: cleanEmail,
+          role,
+          studentClass: role === 'siswa' ? studentClass : undefined,
+          avatar: role === 'guru' ? '👨‍🏫' : '🎒',
+          authProvider: 'email',
+          createdAt: new Date().toISOString().split('T')[0],
+        };
 
-    if (user.role === 'guru' && (activeTab === 'kuis' || activeTab === 'progres')) {
-      setActiveTab('bank-soal');
+        setSession({
+          uid: firebaseUser.uid,
+          role,
+          name,
+          email: cleanEmail,
+          studentClass: role === 'siswa' ? studentClass : undefined,
+          avatar: loggedUser.avatar,
+          isLoggedIn: true,
+          isGuest: false,
+          authProvider: 'email',
+        });
+
+        setIsFirebaseConnected(true);
+        closeAuthModal();
+
+        if (role === 'guru' && (activeTab === 'kuis' || activeTab === 'progres')) {
+          setActiveTab('bank-soal');
+        }
+
+        return {
+          success: true,
+          message: `Berhasil masuk! Selamat datang, ${name}.`,
+          user: loggedUser,
+        };
+      } catch (error: any) {
+        let msg = 'Gagal masuk. Periksa kembali email dan kata sandi Anda.';
+        if (
+          error?.code === 'auth/invalid-credential' ||
+          error?.code === 'auth/wrong-password' ||
+          error?.code === 'auth/user-not-found'
+        ) {
+          msg = 'Email atau kata sandi tidak sesuai. Silakan periksa kembali.';
+        } else if (error?.code === 'auth/invalid-email') {
+          msg = 'Format alamat email tidak valid.';
+        } else if (error?.code === 'auth/too-many-requests') {
+          msg = 'Terlalu banyak percobaan gagal. Silakan coba lagi nanti.';
+        }
+        return { success: false, message: msg };
+      }
     }
 
     return {
-      success: true,
-      message: `Selamat datang kembali, ${user.name}!`,
-      user,
+      success: false,
+      message: 'Email atau kata sandi tidak ditemukan di sistem.',
     };
   };
 
-  // Register new User
-  const registerWithEmail = (
+  // Register new User (Firebase Auth + Firestore Profile + Fallback)
+  const registerWithEmail = async (
     name: string,
     email: string,
     password: string,
     role: UserRole,
     studentClass?: string
-  ): { success: boolean; message: string; user?: AuthUser } => {
+  ): Promise<{ success: boolean; message: string; user?: AuthUser }> => {
     const cleanEmail = email.trim().toLowerCase();
     const cleanName = name.trim();
     const cleanPass = password.trim();
@@ -460,6 +646,81 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     }
 
+    // 1. Firebase Authentication & Firestore Registration
+    if (isFirebaseConfigured && auth) {
+      try {
+        const userCred = await createUserWithEmailAndPassword(auth, cleanEmail, cleanPass);
+        const firebaseUser = userCred.user;
+        await updateProfile(firebaseUser, { displayName: cleanName });
+
+        const userProfileData = {
+          uid: firebaseUser.uid,
+          name: cleanName,
+          email: cleanEmail,
+          role,
+          studentClass: role === 'siswa' ? studentClass || 'XII MIPA 1' : null,
+          createdAt: serverTimestamp(),
+        };
+
+        if (db) {
+          try {
+            await setDoc(doc(db, 'users', firebaseUser.uid), userProfileData);
+          } catch (err) {
+            console.warn('Could not write user profile to Firestore:', err);
+          }
+        }
+
+        const newUser: AuthUser = {
+          id: firebaseUser.uid,
+          name: cleanName,
+          email: cleanEmail,
+          role,
+          studentClass: role === 'siswa' ? studentClass || 'XII MIPA 1' : undefined,
+          avatar: role === 'guru' ? '👨‍🏫' : '🎒',
+          authProvider: 'email',
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+
+        setRegisteredUsers((prev) => [newUser, ...prev]);
+
+        setSession({
+          uid: firebaseUser.uid,
+          role: newUser.role,
+          name: newUser.name,
+          email: newUser.email,
+          studentClass: newUser.studentClass,
+          avatar: newUser.avatar,
+          isLoggedIn: true,
+          isGuest: false,
+          authProvider: 'email',
+        });
+
+        setIsFirebaseConnected(true);
+        closeAuthModal();
+
+        if (role === 'guru') {
+          setActiveTab('bank-soal');
+        }
+
+        return {
+          success: true,
+          message: `Pendaftaran berhasil! Akun Anda aktif di database Firebase.`,
+          user: newUser,
+        };
+      } catch (error: any) {
+        let msg = 'Gagal mendaftar akun di Firebase.';
+        if (error?.code === 'auth/email-already-in-use') {
+          msg = 'Email ini sudah terdaftar di sistem! Silakan langsung masuk.';
+        } else if (error?.code === 'auth/weak-password') {
+          msg = 'Kata sandi minimal 6 karakter demi keamanan akun Anda.';
+        } else if (error?.code === 'auth/invalid-email') {
+          msg = 'Format alamat email tidak valid.';
+        }
+        return { success: false, message: msg };
+      }
+    }
+
+    // 2. Fallback to local storage if Firebase is not yet ready
     const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
     if (existing) {
       return {
@@ -505,68 +766,177 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   };
 
-  // Login with Google (Simulation)
-  const loginWithGoogle = (account?: {
+  // Login with Google (Real Firebase Google Sign-In with Demo Chooser Fallback)
+  const loginWithGoogle = async (account?: {
     name: string;
     email: string;
     role: UserRole;
     avatar?: string;
     studentClass?: string;
-  }): { success: boolean; message: string; user?: AuthUser } => {
-    const targetName = account?.name || 'Ahmad Fauzi';
-    const targetEmail = (account?.email || 'ahmad.fauzi@gmail.com').toLowerCase();
-    const targetRole = account?.role || 'siswa';
-    const targetClass = account?.studentClass || (targetRole === 'siswa' ? 'XII MIPA 1' : undefined);
-    const targetAvatar = account?.avatar || (targetRole === 'guru' ? '👩‍🏫' : '👨‍🎓');
+  }): Promise<{ success: boolean; message: string; user?: AuthUser }> => {
+    // If account was chosen manually from demo chooser
+    if (account) {
+      const targetName = account.name;
+      const targetEmail = account.email.toLowerCase();
+      const targetRole = account.role;
+      const targetClass = account.studentClass || (targetRole === 'siswa' ? 'XII MIPA 1' : undefined);
+      const targetAvatar = account.avatar || (targetRole === 'guru' ? '👩‍🏫' : '👨‍🎓');
 
-    let user = registeredUsers.find((u) => u.email.toLowerCase() === targetEmail);
+      let user = registeredUsers.find((u) => u.email.toLowerCase() === targetEmail);
 
-    if (!user) {
-      user = {
-        id: `google_${Date.now()}`,
-        name: targetName,
-        email: targetEmail,
-        role: targetRole,
-        studentClass: targetClass,
-        avatar: targetAvatar,
+      if (!user) {
+        user = {
+          id: `google_${Date.now()}`,
+          name: targetName,
+          email: targetEmail,
+          role: targetRole,
+          studentClass: targetClass,
+          avatar: targetAvatar,
+          authProvider: 'google',
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+        setRegisteredUsers((prev) => [user!, ...prev]);
+      }
+
+      setSession({
+        role: user.role,
+        name: user.name,
+        email: user.email,
+        studentClass: user.studentClass,
+        avatar: user.avatar,
+        isLoggedIn: true,
+        isGuest: false,
         authProvider: 'google',
-        createdAt: new Date().toISOString().split('T')[0],
+      });
+
+      closeAuthModal();
+
+      if (user.role === 'guru') {
+        setActiveTab('bank-soal');
+      }
+
+      return {
+        success: true,
+        message: `Berhasil masuk dengan akun Google: ${user.email}`,
+        user,
       };
-      setRegisteredUsers((prev) => [user!, ...prev]);
     }
 
-    setSession({
-      role: user.role,
-      name: user.name,
-      email: user.email,
-      studentClass: user.studentClass,
-      avatar: user.avatar,
-      isLoggedIn: true,
-      authProvider: 'google',
-    });
+    // Real Firebase Google Auth Popup
+    if (isFirebaseConfigured && auth) {
+      try {
+        const result = await signInWithPopup(auth, googleProvider);
+        const firebaseUser = result.user;
+        let role: UserRole = 'siswa';
+        let studentClass = 'XII MIPA 1';
+        let name = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Pengguna Google';
 
-    closeAuthModal();
+        if (db) {
+          try {
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const data = userDoc.data();
+              role = (data.role as UserRole) || role;
+              studentClass = data.studentClass || studentClass;
+              name = data.name || name;
+            } else {
+              // Create user record in Firestore
+              await setDoc(userDocRef, {
+                uid: firebaseUser.uid,
+                name,
+                email: firebaseUser.email,
+                role,
+                studentClass,
+                createdAt: serverTimestamp(),
+              });
+            }
+          } catch (err) {
+            console.warn('Could not save google user profile in Firestore:', err);
+          }
+        }
 
-    if (user.role === 'guru') {
-      setActiveTab('bank-soal');
+        const user: AuthUser = {
+          id: firebaseUser.uid,
+          name,
+          email: firebaseUser.email || '',
+          role,
+          studentClass: role === 'siswa' ? studentClass : undefined,
+          avatar: role === 'guru' ? '👩‍🏫' : '👨‍🎓',
+          authProvider: 'google',
+          createdAt: new Date().toISOString().split('T')[0],
+        };
+
+        setSession({
+          uid: firebaseUser.uid,
+          role: user.role,
+          name: user.name,
+          email: user.email,
+          studentClass: user.studentClass,
+          avatar: user.avatar,
+          isLoggedIn: true,
+          isGuest: false,
+          authProvider: 'google',
+        });
+
+        setIsFirebaseConnected(true);
+        closeAuthModal();
+
+        if (role === 'guru') {
+          setActiveTab('bank-soal');
+        }
+
+        return {
+          success: true,
+          message: `Berhasil masuk dengan akun Google: ${firebaseUser.email}`,
+          user,
+        };
+      } catch (error: any) {
+        if (
+          error?.code === 'auth/popup-closed-by-user' ||
+          error?.code === 'auth/cancelled-popup-request'
+        ) {
+          return { success: false, message: 'Jendela login Google ditutup sebelum selesai.' };
+        }
+        console.warn('Google Sign-In popup error:', error);
+        return { success: false, message: error?.message || 'Gagal masuk dengan Google.' };
+      }
     }
 
     return {
-      success: true,
-      message: `Berhasil masuk dengan akun Google: ${user.email}`,
-      user,
+      success: false,
+      message: 'Firebase belum terkonfigurasi. Silakan periksa file .env.local Anda.',
     };
   };
 
-  // Reset Password with Email
-  const resetPasswordWithEmail = (
+  // Reset Password with Email (Firebase sendPasswordResetEmail + Fallback)
+  const resetPasswordWithEmail = async (
     email: string,
-    newPassword: string
-  ): { success: boolean; message: string } => {
+    newPassword?: string
+  ): Promise<{ success: boolean; message: string }> => {
     const cleanEmail = email.trim().toLowerCase();
-    const cleanPass = newPassword.trim();
 
-    if (!cleanPass || cleanPass.length < 6) {
+    // 1. Firebase Password Reset Email
+    if (isFirebaseConfigured && auth) {
+      try {
+        await sendPasswordResetEmail(auth, cleanEmail);
+        return {
+          success: true,
+          message: `Link reset kata sandi telah dikirimkan ke email ${cleanEmail}. Silakan periksa inbox/spam.`,
+        };
+      } catch (error: any) {
+        if (error?.code === 'auth/user-not-found') {
+          return { success: false, message: 'Email tidak ditemukan di sistem Firebase.' };
+        } else if (error?.code === 'auth/invalid-email') {
+          return { success: false, message: 'Format alamat email tidak valid.' };
+        }
+        console.warn('Firebase sendPasswordResetEmail error:', error);
+      }
+    }
+
+    // 2. Local Fallback for mock accounts
+    const cleanPass = newPassword ? newPassword.trim() : '';
+    if (cleanPass && cleanPass.length < 6) {
       return {
         success: false,
         message: 'Kata sandi baru minimal 6 karakter!',
@@ -574,7 +944,6 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
 
     const index = registeredUsers.findIndex((u) => u.email.toLowerCase() === cleanEmail);
-
     if (index === -1) {
       return {
         success: false,
@@ -582,14 +951,16 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       };
     }
 
-    setRegisteredUsers((prev) => {
-      const updated = [...prev];
-      updated[index] = {
-        ...updated[index],
-        password: cleanPass,
-      };
-      return updated;
-    });
+    if (cleanPass) {
+      setRegisteredUsers((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          password: cleanPass,
+        };
+        return updated;
+      });
+    }
 
     return {
       success: true,
@@ -651,7 +1022,14 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (isFirebaseConfigured && auth) {
+      try {
+        await signOut(auth);
+      } catch (e) {
+        console.warn('Firebase signOut error:', e);
+      }
+    }
     setSession({
       role: 'siswa',
       name: 'Tamu / Pengunjung',
@@ -796,8 +1174,10 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   };
 
-  // Rekap Nilai Management (Guru)
-  const addQuizSubmission = (submission: Omit<QuizSubmission, 'id' | 'submittedAt'>) => {
+  // Rekap Nilai Management (Guru) - Local + Cloud Firestore Sync
+  const addQuizSubmission = async (
+    submission: Omit<QuizSubmission, 'id' | 'submittedAt'>
+  ) => {
     const now = new Date();
     const formattedDate = `${now.toLocaleDateString('id-ID', {
       day: '2-digit',
@@ -805,16 +1185,39 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       year: 'numeric',
     })}, ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`;
 
+    const localId = 'sub_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
     const newSub: QuizSubmission = {
       ...submission,
-      id: 'sub_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+      id: localId,
+      uid: session.uid || (auth?.currentUser?.uid ?? undefined),
       submittedAt: formattedDate,
     };
     setQuizSubmissions((prev) => [newSub, ...prev]);
+
+    // Cloud Firestore Persistence
+    if (isFirebaseConfigured && db) {
+      try {
+        await addDoc(collection(db, 'quiz_submissions'), {
+          ...submission,
+          uid: session.uid || auth?.currentUser?.uid || 'guest',
+          submittedAt: formattedDate,
+          timestamp: serverTimestamp(),
+        });
+      } catch (err) {
+        console.warn('Could not save submission to Firestore:', err);
+      }
+    }
   };
 
-  const deleteQuizSubmission = (id: string) => {
+  const deleteQuizSubmission = async (id: string) => {
     setQuizSubmissions((prev) => prev.filter((s) => s.id !== id));
+    if (isFirebaseConfigured && db) {
+      try {
+        await deleteDoc(doc(db, 'quiz_submissions', id));
+      } catch (err) {
+        console.warn('Could not delete submission from Firestore:', err);
+      }
+    }
   };
 
   const resetQuizSubmissionsToDefault = () => {
@@ -845,6 +1248,9 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         saveQuizResult,
         resetAllProgress,
         overallPercentage,
+
+        isFirebaseConfigured,
+        isFirebaseConnected,
 
         session,
         guruPin,
