@@ -148,3 +148,26 @@ export interface QuizSubmission {
   status: 'Lulus' | 'Remedial';
 }
 
+export interface StudentProfile {
+  uid?: string;
+  name: string;
+  studentClass: string;
+  nisn?: string;
+  schoolName?: string;
+  email?: string;
+  avatar?: string;
+  bio?: string;
+  updatedAt?: string;
+}
+
+export interface QuizDraft {
+  userAnswers: Record<number, number>;
+  currentIndex: number;
+  isSubmitted: boolean;
+  score?: number;
+  totalQuestions?: number;
+  percentage?: number;
+  updatedAt?: string;
+}
+
+

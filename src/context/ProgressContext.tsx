@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type {
   LabObservationRecord,
   UserProgress,
@@ -8,6 +8,8 @@ import type {
   QuizQuestion,
   AuthUser,
   AuthModalView,
+  StudentProfile,
+  QuizDraft,
 } from '../types/chemistry';
 import { LEARNING_MODULES } from '../data/materials';
 import { QUIZ_QUESTIONS } from '../data/quizQuestions';
@@ -112,6 +114,15 @@ interface ProgressContextType {
   updateGuruPin: (oldPin: string, newPin: string) => { success: boolean; message: string };
   updateSiswaPin: (oldPin: string, newPin: string) => { success: boolean; message: string };
 
+  // Student Profile Storage System
+  studentProfile: StudentProfile;
+  updateStudentProfile: (profile: Partial<StudentProfile>) => Promise<void>;
+
+  // Quiz Draft / In-Progress Answers Storage
+  quizDraft: QuizDraft | null;
+  saveQuizDraft: (draft: Partial<QuizDraft>) => void;
+  clearQuizDraft: () => void;
+
   // Bank Soal
   quizQuestions: QuizQuestion[];
   addQuizQuestion: (question: Omit<QuizQuestion, 'id'>) => void;
@@ -136,6 +147,8 @@ const STORAGE_KEY_SISWA_PIN = 'chemlearn_xii_siswa_pin_v1';
 const STORAGE_KEY_QUESTIONS = 'chemlearn_xii_quiz_questions_v1';
 const STORAGE_KEY_SUBMISSIONS = 'chemlearn_xii_quiz_submissions_v1';
 const STORAGE_KEY_USERS = 'chemlearn_xii_registered_users_v1';
+const STORAGE_KEY_STUDENT_PROFILE = 'chemlearn_xii_student_profile_v1';
+const STORAGE_KEY_QUIZ_DRAFT = 'chemlearn_xii_quiz_draft_v1';
 
 const DEFAULT_GURU_PIN = import.meta.env.VITE_DEFAULT_GURU_PIN || '8888';
 const DEFAULT_SISWA_PIN = import.meta.env.VITE_DEFAULT_SISWA_PIN || '1234';
@@ -179,6 +192,17 @@ const defaultSession: UserSession = {
   studentClass: undefined,
   isLoggedIn: false,
   isGuest: true,
+};
+
+const defaultStudentProfile: StudentProfile = {
+  name: 'Ahmad Fauzi',
+  studentClass: 'XII MIPA 1',
+  schoolName: 'SMA Negeri 1',
+  nisn: '1234567890',
+  avatar: '🎒',
+  email: 'siswa@chemlearn.id',
+  bio: 'Siswa kelas XII yang aktif mempelajari konsep kimia larutan elektrolit.',
+  updatedAt: '2026-11-01',
 };
 
 const defaultSubmissions: QuizSubmission[] = [
@@ -337,6 +361,34 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     return defaultSubmissions;
   });
 
+  // Student Profile Storage State
+  const [studentProfile, setStudentProfile] = useState<StudentProfile>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_STUDENT_PROFILE);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse localStorage student profile:', e);
+    }
+    return defaultStudentProfile;
+  });
+
+  // Quiz Draft / In-Progress Answers State
+  const [quizDraft, setQuizDraft] = useState<QuizDraft | null>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_QUIZ_DRAFT);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to parse localStorage quiz draft:', e);
+    }
+    return null;
+  });
+
   // Firebase Connection State
   const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(false);
 
@@ -370,6 +422,20 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
                 role = (data.role as UserRole) || role;
                 studentClass = data.studentClass || studentClass;
                 name = data.name || name;
+
+                if (role === 'siswa') {
+                  if (data.studentProfile) {
+                    setStudentProfile(data.studentProfile);
+                  } else {
+                    setStudentProfile((prev) => ({
+                      ...prev,
+                      uid: firebaseUser.uid,
+                      name,
+                      studentClass,
+                      email: firebaseUser.email || prev.email,
+                    }));
+                  }
+                }
               }
             } catch (err) {
               console.warn('Failed to fetch user doc from Firestore:', err);
@@ -483,6 +549,26 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.warn('Failed to save users to localStorage:', e);
     }
   }, [registeredUsers]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_STUDENT_PROFILE, JSON.stringify(studentProfile));
+    } catch (e) {
+      console.warn('Failed to save student profile to localStorage:', e);
+    }
+  }, [studentProfile]);
+
+  useEffect(() => {
+    try {
+      if (quizDraft) {
+        localStorage.setItem(STORAGE_KEY_QUIZ_DRAFT, JSON.stringify(quizDraft));
+      } else {
+        localStorage.removeItem(STORAGE_KEY_QUIZ_DRAFT);
+      }
+    } catch (e) {
+      console.warn('Failed to save quiz draft to localStorage:', e);
+    }
+  }, [quizDraft]);
 
   // Auth Modal Controls
   const openAuthModal = (
@@ -1040,12 +1126,80 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setActiveTab('beranda');
   };
 
+  const updateStudentProfile = async (profileData: Partial<StudentProfile>) => {
+    const updated: StudentProfile = {
+      ...studentProfile,
+      ...profileData,
+      updatedAt: new Date().toISOString(),
+    };
+    setStudentProfile(updated);
+
+    if (session.role === 'siswa') {
+      setSession((prev) => ({
+        ...prev,
+        name: updated.name || prev.name,
+        studentClass: updated.studentClass !== undefined ? updated.studentClass : prev.studentClass,
+        avatar: updated.avatar || prev.avatar,
+      }));
+    }
+
+    const currentUid = session.uid || auth?.currentUser?.uid;
+    if (isFirebaseConfigured && db && currentUid) {
+      try {
+        await setDoc(
+          doc(db, 'users', currentUid),
+          {
+            name: updated.name,
+            studentClass: updated.studentClass,
+            schoolName: updated.schoolName || null,
+            nisn: updated.nisn || null,
+            avatar: updated.avatar || null,
+            bio: updated.bio || null,
+            studentProfile: updated,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Failed to sync student profile to Firestore:', err);
+      }
+    }
+  };
+
+  const saveQuizDraft = useCallback((draftUpdate: Partial<QuizDraft>) => {
+    setQuizDraft((prev) => {
+      const merged: QuizDraft = {
+        userAnswers: draftUpdate.userAnswers !== undefined ? draftUpdate.userAnswers : (prev?.userAnswers || {}),
+        currentIndex: draftUpdate.currentIndex !== undefined ? draftUpdate.currentIndex : (prev?.currentIndex || 0),
+        isSubmitted: draftUpdate.isSubmitted !== undefined ? draftUpdate.isSubmitted : (prev?.isSubmitted || false),
+        score: draftUpdate.score !== undefined ? draftUpdate.score : prev?.score,
+        totalQuestions: draftUpdate.totalQuestions !== undefined ? draftUpdate.totalQuestions : prev?.totalQuestions,
+        percentage: draftUpdate.percentage !== undefined ? draftUpdate.percentage : prev?.percentage,
+        updatedAt: new Date().toISOString(),
+      };
+      return merged;
+    });
+  }, []);
+
+  const clearQuizDraft = useCallback(() => {
+    setQuizDraft(null);
+  }, []);
+
   const updateSessionProfile = (name: string, studentClass?: string) => {
+    const cleanName = name.trim();
+    const cleanClass = studentClass !== undefined ? studentClass.trim() : undefined;
     setSession((prev) => ({
       ...prev,
-      name: name.trim() || prev.name,
-      studentClass: studentClass !== undefined ? studentClass.trim() : prev.studentClass,
+      name: cleanName || prev.name,
+      studentClass: cleanClass !== undefined ? cleanClass : prev.studentClass,
     }));
+
+    if (session.role === 'siswa') {
+      updateStudentProfile({
+        name: cleanName || studentProfile.name,
+        studentClass: cleanClass !== undefined ? cleanClass : studentProfile.studentClass,
+      });
+    }
   };
 
   const updateGuruPin = (oldPin: string, newPin: string): { success: boolean; message: string } => {
@@ -1273,6 +1427,12 @@ export const ProgressProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         updateSessionProfile,
         updateGuruPin,
         updateSiswaPin,
+
+        studentProfile,
+        updateStudentProfile,
+        quizDraft,
+        saveQuizDraft,
+        clearQuizDraft,
 
         quizQuestions,
         addQuizQuestion,

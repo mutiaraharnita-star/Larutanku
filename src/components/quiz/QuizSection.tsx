@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { QuizReview } from './QuizReview';
 import { useProgress } from '../../context/ProgressContext';
 import {
@@ -19,12 +19,45 @@ export const QuizSection: React.FC = () => {
     addQuizSubmission,
     session,
     setActiveTab,
+    quizDraft,
+    saveQuizDraft,
+    clearQuizDraft,
   } = useProgress();
 
-  const [currentIndex, setCurrentIndex] = useState<number>(0);
-  const [userAnswers, setUserAnswers] = useState<Record<number, number>>({});
-  const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [currentIndex, setCurrentIndex] = useState<number>(() => {
+    if (quizDraft && typeof quizDraft.currentIndex === 'number') {
+      return quizDraft.currentIndex;
+    }
+    return 0;
+  });
+
+  const [userAnswers, setUserAnswers] = useState<Record<number, number>>(() => {
+    if (quizDraft && quizDraft.userAnswers && typeof quizDraft.userAnswers === 'object') {
+      return quizDraft.userAnswers;
+    }
+    return {};
+  });
+
+  const [isSubmitted, setIsSubmitted] = useState<boolean>(() => {
+    if (quizDraft && typeof quizDraft.isSubmitted === 'boolean') {
+      return quizDraft.isSubmitted;
+    }
+    return false;
+  });
+
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+
+  // Sync state changes directly to persistent quizDraft in localStorage
+  useEffect(() => {
+    const hasAnswers = Object.keys(userAnswers).length > 0;
+    if (hasAnswers || currentIndex > 0 || isSubmitted) {
+      saveQuizDraft({
+        userAnswers,
+        currentIndex,
+        isSubmitted,
+      });
+    }
+  }, [userAnswers, currentIndex, isSubmitted, saveQuizDraft]);
 
   const totalQuestions = quizQuestions.length;
 
@@ -65,10 +98,18 @@ export const QuizSection: React.FC = () => {
   const unansweredCount = totalQuestions - answeredCount;
 
   const handleSelectOption = (optIndex: number) => {
-    setUserAnswers((prev) => ({
-      ...prev,
-      [currentQ.id]: optIndex,
-    }));
+    setUserAnswers((prev) => {
+      const nextAnswers = {
+        ...prev,
+        [currentQ.id]: optIndex,
+      };
+      saveQuizDraft({
+        userAnswers: nextAnswers,
+        currentIndex: safeIndex,
+        isSubmitted: false,
+      });
+      return nextAnswers;
+    });
   };
 
   const handleSubmitQuiz = () => {
@@ -102,6 +143,14 @@ export const QuizSection: React.FC = () => {
 
     setIsSubmitted(true);
     setShowConfirmModal(false);
+    saveQuizDraft({
+      userAnswers,
+      currentIndex: safeIndex,
+      isSubmitted: true,
+      score,
+      totalQuestions,
+      percentage,
+    });
     window.scrollTo({ top: 100, behavior: 'smooth' });
   };
 
@@ -109,6 +158,7 @@ export const QuizSection: React.FC = () => {
     setUserAnswers({});
     setCurrentIndex(0);
     setIsSubmitted(false);
+    clearQuizDraft();
     window.scrollTo({ top: 100, behavior: 'smooth' });
   };
 
