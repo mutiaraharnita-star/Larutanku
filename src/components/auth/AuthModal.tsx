@@ -19,6 +19,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useProgress } from '../../context/ProgressContext';
+import { useAccessibleDialog } from '../../hooks/useAccessibleDialog';
 import type { UserRole, AuthModalView } from '../../types/chemistry';
 
 interface AuthModalProps {
@@ -62,9 +63,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     loginWithGoogle,
     resetPasswordWithEmail,
     isFirebaseConfigured,
+    guruPin,
   } = useProgress();
 
   const [view, setView] = useState<AuthModalView>(() => authInitialView || 'login');
+
+  // Accessible Dialog Hook (Escape, Focus Trap, Lock Scroll)
+  const dialogRef = useAccessibleDialog(isOpen, onClose);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState('');
@@ -76,6 +81,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regRole, setRegRole] = useState<UserRole>(() => (targetRole === 'guru' ? 'guru' : 'siswa'));
+  const [regTeacherCode, setRegTeacherCode] = useState('');
   const [regClass, setRegClass] = useState('XII MIPA 1');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
@@ -136,6 +142,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (!regName.trim() || !regEmail.trim() || !regPassword.trim()) {
       setErrorMsg('Semua kolom wajib diisi dengan lengkap.');
       return;
+    }
+
+    if (regRole === 'guru') {
+      if (!regTeacherCode.trim()) {
+        setErrorMsg('Kode otorisasi guru wajib diisi untuk mendaftarkan akun guru.');
+        return;
+      }
+      if (regTeacherCode.trim() !== (guruPin || '8888').trim()) {
+        setErrorMsg('Kode otorisasi guru tidak valid! Pendaftaran akun guru hanya diperuntukkan bagi tenaga pendidik berwenang.');
+        return;
+      }
     }
 
     if (regPassword.length < 6) {
@@ -300,6 +317,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   return (
     <div className="modal-backdrop" id="auth-modal-overlay" onClick={onClose}>
       <div
+        ref={dialogRef}
         className="auth-modal-card"
         id="auth-modal-container"
         onClick={(e) => e.stopPropagation()}
@@ -449,25 +467,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 className="g-account-item"
                 onClick={() =>
                   handleSelectGoogleAccount({
-                    name: 'Dra. Siti Aminah, M.Pd',
-                    email: 'siti.aminah@guru.sma.belajar.id',
-                    role: 'guru',
-                    avatar: '👩‍🏫',
-                  })
-                }
-              >
-                <div className="g-avatar bg-purple">SA</div>
-                <div className="g-acc-info">
-                  <span className="g-acc-name">Dra. Siti Aminah, M.Pd</span>
-                  <span className="g-acc-email">siti.aminah@guru.sma.belajar.id (Guru Kimia)</span>
-                </div>
-              </button>
-
-              <button
-                type="button"
-                className="g-account-item"
-                onClick={() =>
-                  handleSelectGoogleAccount({
                     name: 'Putri Ayu Wandira',
                     email: 'putri.ayu@gmail.com',
                     role: 'siswa',
@@ -482,6 +481,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <span className="g-acc-email">putri.ayu@gmail.com (Siswa XII MIPA 2)</span>
                 </div>
               </button>
+
+              <div style={{
+                margin: '8px 0',
+                padding: '10px 12px',
+                background: '#f8fafc',
+                border: '1px dashed #cbd5e1',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Lock size={15} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+                <span>Akun Tenaga Pendidik / Guru terlindungi dan hanya dapat diakses melalui login email terverifikasi.</span>
+              </div>
             </div>
 
             <div className="g-chooser-footer">
@@ -495,6 +510,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             ========================================================================= */}
         {view === 'login' && !showGoogleChooser && (
           <form className="auth-form" onSubmit={handleLoginSubmit}>
+            {targetRole === 'guru' && (
+              <div style={{
+                background: '#faf5ff',
+                border: '1px solid #d8b4fe',
+                borderRadius: '8px',
+                padding: '10px 14px',
+                fontSize: '0.84rem',
+                color: '#6b21a8',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '16px'
+              }}>
+                <Lock size={16} style={{ color: '#9333ea', flexShrink: 0 }} />
+                <span><strong>Akses Khusus Guru Terlindungi:</strong> Silakan masuk dengan akun Guru resmi untuk mengakses Bank Soal dan Rekap Nilai Siswa.</span>
+              </div>
+            )}
+
             {/* Google Sign In Button */}
             <button
               type="button"
@@ -718,6 +751,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <option value="XII IPS 2">XII IPS 2</option>
                   <option value="Kelas XII Lainnya">Kelas XII Lainnya</option>
                 </select>
+              </div>
+            )}
+
+            {/* Kode Otorisasi Pendidik (if Guru) */}
+            {regRole === 'guru' && (
+              <div className="form-group-modern" style={{
+                background: '#fdf4ff',
+                border: '1px solid #f0abfc',
+                borderRadius: '10px',
+                padding: '12px 14px'
+              }}>
+                <label htmlFor="reg-teacher-code-input" style={{ color: '#86198f', fontWeight: 700 }}>
+                  Kode Otorisasi / PIN Pendidik Kimia <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <div className="input-icon-wrapper" style={{ marginTop: '6px' }}>
+                  <KeyRound size={17} className="field-icon" style={{ color: '#a21caf' }} />
+                  <input
+                    type="password"
+                    id="reg-teacher-code-input"
+                    name="teacher-code"
+                    placeholder="Masukkan kode otorisasi guru..."
+                    value={regTeacherCode}
+                    onChange={(e) => setRegTeacherCode(e.target.value)}
+                    required
+                  />
+                </div>
+                <small style={{ fontSize: '0.78rem', color: '#701a75', marginTop: '6px', display: 'block', lineHeight: 1.4 }}>
+                  🔒 Akses pendaftaran guru dibatasi demi keamanan bank soal & privasi nilai siswa. Silakan masukkan kode verifikasi guru resmi.
+                </small>
               </div>
             )}
 

@@ -16,6 +16,7 @@ import {
   PlusCircle,
 } from 'lucide-react';
 import { useProgress } from '../../context/ProgressContext';
+import { useAccessibleDialog } from '../../hooks/useAccessibleDialog';
 
 const KKM_SCORE = 75;
 
@@ -32,38 +33,66 @@ export const GradeRecapSection: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'Lulus' | 'Remedial'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'score-desc' | 'score-asc' | 'name'>('date');
   const [showClearModal, setShowClearModal] = useState<boolean>(false);
+  const clearDialogRef = useAccessibleDialog(showClearModal, () => setShowClearModal(false));
 
   // New simulated student state
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const addDialogRef = useAccessibleDialog(showAddModal, () => setShowAddModal(false));
   const [newSimName, setNewSimName] = useState<string>('');
   const [newSimClass, setNewSimClass] = useState<string>('XII MIPA 1');
   const [newSimScore, setNewSimScore] = useState<number>(8);
   const [newSimTotal, setNewSimTotal] = useState<number>(10);
 
-  // Calculations
-  const totalStudents = quizSubmissions.length;
-  const passedStudents = quizSubmissions.filter((s) => s.percentage >= KKM_SCORE).length;
-  const remedialStudents = totalStudents - passedStudents;
+  // Distinct Student Calculations (Solves: "Rekap nilai menghitung percobaan sebagai jumlah siswa")
+  const totalAttempts = quizSubmissions.length;
+  const studentMap = new Map<string, { name: string; studentClass: string; highestPercentage: number; attempts: number }>();
+  quizSubmissions.forEach((s) => {
+    const key = `${s.studentName.trim().toLowerCase()}_${s.studentClass.trim().toLowerCase()}`;
+    const existing = studentMap.get(key);
+    if (!existing) {
+      studentMap.set(key, {
+        name: s.studentName,
+        studentClass: s.studentClass,
+        highestPercentage: s.percentage,
+        attempts: 1,
+      });
+    } else {
+      existing.attempts += 1;
+      if (s.percentage > existing.highestPercentage) {
+        existing.highestPercentage = s.percentage;
+      }
+    }
+  });
+
+  const uniqueStudentsCount = studentMap.size;
+  const uniqueStudentsList = Array.from(studentMap.values());
+  const uniquePassedStudents = uniqueStudentsList.filter((s) => s.highestPercentage >= KKM_SCORE).length;
+  const uniqueRemedialStudents = uniqueStudentsCount - uniquePassedStudents;
+
+  // Compatibility aliases for recap statistics
+  const totalStudents = uniqueStudentsCount;
+  const passedStudents = uniquePassedStudents;
+  const remedialStudents = uniqueRemedialStudents;
 
   const averageScore =
-    totalStudents > 0
+    totalAttempts > 0
       ? Math.round(
-          quizSubmissions.reduce((acc, curr) => acc + curr.percentage, 0) / totalStudents
+          quizSubmissions.reduce((acc, curr) => acc + curr.percentage, 0) / totalAttempts
         )
       : 0;
 
   const highestScore =
-    totalStudents > 0
+    totalAttempts > 0
       ? Math.max(...quizSubmissions.map((s) => s.percentage))
       : 0;
 
   const lowestScore =
-    totalStudents > 0
+    totalAttempts > 0
       ? Math.min(...quizSubmissions.map((s) => s.percentage))
       : 0;
 
   const passRate =
-    totalStudents > 0 ? Math.round((passedStudents / totalStudents) * 100) : 0;
+    uniqueStudentsCount > 0 ? Math.round((uniquePassedStudents / uniqueStudentsCount) * 100) : 0;
 
   // Filter & Sort
   const filteredSubmissions = quizSubmissions
@@ -413,6 +442,7 @@ export const GradeRecapSection: React.FC = () => {
       {showAddModal && (
         <div className="modal-backdrop" onClick={() => setShowAddModal(false)}>
           <div
+            ref={addDialogRef}
             className="auth-modal-dialog"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
@@ -519,6 +549,7 @@ export const GradeRecapSection: React.FC = () => {
       {showClearModal && (
         <div className="modal-backdrop" onClick={() => setShowClearModal(false)}>
           <div
+            ref={clearDialogRef}
             className="confirm-modal-dialog"
             onClick={(e) => e.stopPropagation()}
             role="alertdialog"

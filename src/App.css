@@ -6557,3 +6557,68 @@
   font-weight: 600;
 }
 
+/* ==========================================================================
+   MOBILE SCREEN 375PX & SMALL DEVICE RESPONSIVENESS (Temuan 9)
+   ========================================================================== */
+@media (max-width: 480px) {
+  .app-root-wrapper,
+  .main-content-layout {
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    padding-left: 12px;
+    padding-right: 12px;
+    box-sizing: border-box;
+  }
+
+  .navbar-content {
+    padding: 0 12px;
+  }
+
+  .brand-title {
+    font-size: 1.15rem;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
+
+  .rekap-table-container,
+  .rekap-table-wrapper,
+  .table-responsive,
+  .lab-table-container,
+  .observations-table-wrapper {
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .modal-content-box,
+  .auth-modal-card,
+  .bs-modal-dialog,
+  .confirm-modal-dialog {
+    width: 95% !important;
+    max-width: 95vw !important;
+    margin: 12px auto !important;
+    padding: 20px 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  .gateway-card {
+    padding: 20px 16px !important;
+  }
+
+  .hero-stats-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .chem-formula,
+  .equation-display {
+    word-break: break-all;
+    overflow-wrap: break-word;
+    font-size: 0.9em;
+  }
+}
+
+

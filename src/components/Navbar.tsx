@@ -76,6 +76,10 @@ export const Navbar: React.FC = () => {
   const handleRequestSwitchRole = (target: 'guru' | 'siswa') => {
     setProfileDropdownOpen(false);
     setMobileMenuOpen(false);
+    if (target === 'guru') {
+      openAuthModal('guru', 'Masuk Akun Guru untuk Mengakses Panel Guru (Bank Soal & Rekap Nilai)');
+      return;
+    }
     switchRole(target);
   };
 
@@ -228,11 +232,14 @@ export const Navbar: React.FC = () => {
                         <button
                           type="button"
                           className="dropdown-item-btn"
-                          onClick={() => handleRequestSwitchRole('guru')}
+                          onClick={() => {
+                            setProfileDropdownOpen(false);
+                            openAuthModal('guru', 'Masuk Akun Guru untuk Mengakses Panel Pengelolaan');
+                          }}
                         >
                           <GraduationCap size={16} />
                           <div className="dd-item-text">
-                            <span>Beralih ke Mode Guru</span>
+                            <span>Masuk Akun Guru</span>
                             <small>Kelola Bank Soal & Rekap Nilai Siswa</small>
                           </div>
                         </button>

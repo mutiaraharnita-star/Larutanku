@@ -169,20 +169,20 @@ export const HomeSection: React.FC = () => {
         </div>
       </section>
 
-      {/* PINTU MASUK & PILIHAN AKSES (LOGIN OPSIONAL - AKSES BEBAS TANPA KUNCI) */}
+      {/* PINTU MASUK & PILIHAN AKSES PEMBELAJARAN */}
       <section className="section-block entrance-gateway-section" id="auth-gateway-section">
         {!session.isLoggedIn ? (
           <div className="gateway-container">
             <div className="gateway-header text-center">
               <div className="section-pill">
                 <Sparkles size={14} />
-                <span>Akses Bebas & Pilihan Sinkronisasi Database</span>
+                <span>Pintu Masuk Pembelajaran</span>
               </div>
-              <h2 className="gateway-main-title">Pilih Mode Belajar & Akses Web Tanpa Kunci</h2>
+              <h2 className="gateway-main-title">Pilih Mode Belajar & Akses Pembelajaran</h2>
               <p className="gateway-subtitle">
-                Semua materi teori, simulasi laboratorium virtual, kuis evaluasi, hingga pengelolaan Bank Soal guru
-                dapat diakses bebas tanpa kunci PIN. Login bersifat opsional jika Anda ingin menyimpan riwayat nilai
-                dan data belajar secara permanen ke database.
+                Materi teori konsep Arrhenius, simulasi laboratorium virtual 11 larutan, dan kuis evaluasi HOTS dapat
+                diakses mandiri oleh siswa. Pengelolaan Bank Soal dan Rekapitulasi Nilai Tenaga Pendidik dilindungi secara
+                khusus dan memerlukan autentikasi akun Guru resmi.
               </p>
             </div>
 
@@ -242,10 +242,11 @@ export const HomeSection: React.FC = () => {
                 </div>
                 <h3 className="gw-title">Kelola Bank Soal & Rekap</h3>
                 <p className="gw-desc">
-                  Akses langsung pengelolaan Bank Soal kuis (tambah/edit/hapus butir soal) dan pantau rekapitulasi nilai
-                  evaluasi siswa kelas XII tanpa memerlukan PIN kunci.
+                  Akses pengelolaan Bank Soal kuis (tambah/edit/hapus butir soal) dan pantau rekapitulasi nilai
+                  evaluasi siswa kelas XII melalui autentikasi akun Guru resmi.
                 </p>
                 <div className="gw-features">
+                  <span>✓ Autentikasi aman akun Guru Kimia</span>
                   <span>✓ Sunting Bank Soal & tentukan kunci jawaban</span>
                   <span>✓ Rekapitulasi nilai & ketuntasan KKM</span>
                   <span>✓ Ekspor spreadsheet Excel & cetak rapor</span>
@@ -253,25 +254,16 @@ export const HomeSection: React.FC = () => {
                 <div className="gw-actions">
                   <button
                     type="button"
-                    id="btn-gw-start-guru"
-                    className="btn btn-teacher-portal btn-sm full-width"
-                    onClick={() => switchRole('guru', 'bank-soal')}
-                  >
-                    <FileQuestion size={15} />
-                    <span>Buka Panel Guru (Tanpa Kunci)</span>
-                  </button>
-                  <button
-                    type="button"
                     id="btn-gw-login-guru"
-                    className="btn btn-outline btn-xs full-width"
+                    className="btn btn-teacher-portal btn-sm full-width"
                     onClick={() =>
                       openAuthModal(
                         'guru',
-                        'Masuk Akun Guru untuk Sinkronisasi Data ke Database'
+                        'Masuk Akun Guru untuk Mengelola Bank Soal dan Rekapitulasi Nilai'
                       )
                     }
                   >
-                    <LogIn size={13} />
+                    <LogIn size={15} />
                     <span>Masuk Akun Guru (Database)</span>
                   </button>
                 </div>

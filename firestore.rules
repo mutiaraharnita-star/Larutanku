@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: Periksa apakah pengguna telah terautentikasi melalui Firebase Auth
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper: Periksa apakah pengguna memiliki peran 'guru' pada dokumen profilnya
+    function isTeacher() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'guru';
+    }
+
+    // 1. Dokumen Profil Pengguna (/users/{userId})
+    match /users/{userId} {
+      // Pengguna terautentikasi dapat membaca profilnya sendiri atau profil sesama pengguna sekolah
+      allow read: if isAuthenticated();
+      // Pengguna hanya boleh menulis/memperbarui dokumen akun miliknya sendiri
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 2. Bank Soal Kuis (/quiz_questions/{questionId})
+    match /quiz_questions/{questionId} {
+      // Siswa dan tamu boleh membaca soal kuis untuk pengerjaan evaluasi
+      allow read: if true;
+      // Hanya Guru terautentikasi yang boleh menambah, mengedit, atau menghapus butir soal
+      allow create, update, delete: if isTeacher();
+    }
+
+    // 3. Rekapitulasi Nilai Siswa (/quiz_submissions/{submissionId})
+    match /quiz_submissions/{submissionId} {
+      // Siswa dapat mengirimkan hasil pengerjaan kuis miliknya
+      allow create: if true;
+      // Hanya Guru terautentikasi yang memiliki izin membaca seluruh rekapitulasi nilai dan menghapus data
+      allow read, delete: if isTeacher();
+      // Nilai yang sudah dikirimkan tidak boleh dimodifikasi/diubah oleh siapapun
+      allow update: if false;
+    }
+  }
+}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { QuizReview } from './QuizReview';
 import { useProgress } from '../../context/ProgressContext';
+import { useAccessibleDialog } from '../../hooks/useAccessibleDialog';
 import {
   HelpCircle,
   ChevronLeft,
@@ -46,6 +47,7 @@ export const QuizSection: React.FC = () => {
   });
 
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
+  const confirmDialogRef = useAccessibleDialog(showConfirmModal, () => setShowConfirmModal(false));
 
   // Sync state changes directly to persistent quizDraft in localStorage
   useEffect(() => {
@@ -123,8 +125,12 @@ export const QuizSection: React.FC = () => {
 
     const percentage = Math.round((score / totalQuestions) * 100);
 
-    // Save student local progress
-    saveQuizResult(score, totalQuestions);
+    // Save student local progress with error protection (Solves: "Hasil kuis hilang ketika penyimpanan gagal")
+    try {
+      saveQuizResult(score, totalQuestions);
+    } catch (err) {
+      console.warn('saveQuizResult failed:', err);
+    }
 
     // Save into Teacher's centralized Rekap Nilai
     const studentName = session.isLoggedIn && session.name
@@ -132,14 +138,18 @@ export const QuizSection: React.FC = () => {
       : (session.name || 'Siswa Kimia (Mode Bebas)');
     const studentClass = session.studentClass || 'XII MIPA 1';
 
-    addQuizSubmission({
-      studentName,
-      studentClass,
-      score,
-      totalQuestions,
-      percentage,
-      status: percentage >= 75 ? 'Lulus' : 'Remedial',
-    });
+    try {
+      addQuizSubmission({
+        studentName,
+        studentClass,
+        score,
+        totalQuestions,
+        percentage,
+        status: percentage >= 75 ? 'Lulus' : 'Remedial',
+      });
+    } catch (err) {
+      console.warn('addQuizSubmission failed:', err);
+    }
 
     setIsSubmitted(true);
     setShowConfirmModal(false);
@@ -359,12 +369,19 @@ export const QuizSection: React.FC = () => {
 
       {/* Confirmation Modal */}
       {showConfirmModal && (
-        <div className="modal-backdrop">
-          <div className="modal-content-box">
+        <div className="modal-backdrop" onClick={() => setShowConfirmModal(false)}>
+          <div
+            ref={confirmDialogRef}
+            className="modal-content-box"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="confirm-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-icon-wrap warning">
               <AlertCircle size={28} />
             </div>
-            <h3 className="modal-title">Masih Ada Soal yang Belum Terjawab</h3>
+            <h3 id="confirm-modal-title" className="modal-title">Masih Ada Soal yang Belum Terjawab</h3>
             <p className="modal-desc">
               Kamu baru menjawab <strong>{answeredCount}</strong> dari {totalQuestions} soal.
               Terdapat <strong>{unansweredCount}</strong> soal yang masih kosong. Apakah kamu yakin

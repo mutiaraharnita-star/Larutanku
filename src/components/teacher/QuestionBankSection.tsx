@@ -14,6 +14,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { useProgress } from '../../context/ProgressContext';
+import { useAccessibleDialog } from '../../hooks/useAccessibleDialog';
 import type { QuizQuestion } from '../../types/chemistry';
 
 export const QuestionBankSection: React.FC = () => {
@@ -53,6 +54,10 @@ export const QuestionBankSection: React.FC = () => {
 
   // Delete confirmation modal state
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Accessible dialog hooks (Escape key, focus trap)
+  const formModalRef = useAccessibleDialog(isModalOpen, () => setIsModalOpen(false));
+  const deleteModalRef = useAccessibleDialog(deletingId !== null, () => setDeletingId(null));
 
   // Filtered Questions
   const filteredQuestions = quizQuestions.filter((q) => {
@@ -371,6 +376,7 @@ export const QuestionBankSection: React.FC = () => {
       {deletingId !== null && (
         <div className="modal-backdrop" onClick={() => setDeletingId(null)}>
           <div
+            ref={deleteModalRef}
             className="confirm-modal-dialog"
             onClick={(e) => e.stopPropagation()}
             role="alertdialog"
@@ -410,6 +416,7 @@ export const QuestionBankSection: React.FC = () => {
       {isModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsModalOpen(false)}>
           <div
+            ref={formModalRef}
             className="bs-modal-dialog"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
